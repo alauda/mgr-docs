@@ -1,0 +1,13 @@
+title: Alauda Database Service for MySQL-MGR
+logoText: Alauda Database Service for MySQL-MGR
+lang: zh
+api:
+  crds:
+    - docs/shared/crds/*.yaml
+  openapis:
+    - docs/shared/openapis/*.json
+permission:
+  functionresources:
+    - docs/shared/functionresources/*.yaml
+  roletemplates:
+    - docs/shared/roletemplates/*.yaml
