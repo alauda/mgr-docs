@@ -1,59 +1,30 @@
 ---
 weight: 55
 ---
-# 监控告警
+# 监控
 
-## 核心指标
-```
-SELECT 
-  MEMBER_HOST,
-  MEMBER_STATE,
-  COUNT_TRANSACTIONS_REMOTE_IN_APPLIER_QUEUE AS apply_queue,
-  COUNT_TRANSACTIONS_CHECKED AS checked_txns
-FROM performance_schema.replication_group_member_stats;
-```
+## 功能简介
+内嵌面板中的监控数据可用于从资源、性能及容量等方面进行 MySQL 监控与告警，且支持配置通知策略。
 
-## 集成功能
-- Prometheus指标暴露
-- Grafana预置看板
-- 告警规则：
-  ```yaml
-  - alert: GroupReplicationDegraded
-    expr: mysql_gr_member_status != 1
-    for: 5m
-    labels:
-      severity: critical
-    annotations:
-      summary: "MySQL Group Replication degraded"
-  ```
+直观呈现的监控数据可用于为运维巡检或性能调优提供决策支持。
 
-## 操作步骤
-<Tabs>
-<Tab label="CLI">
-1. 访问Prometheus
-```bash
-kubectl port-forward -n monitoring svc/prometheus 9090
-```
+### 性能监控面板
 
-2. 查询集群状态
-```
-mysql_gr_member_available{cluster="$name"}
-```
-</Tab>
+平台默认收集 MySQL 的资源、性能及容量相关常用监控指标。在实例的 **监控** 页签中，可查看指标的实时监控数据。
 
-<Tab label="Web Console">
-1. 进入 **监控** 页签
-2. 查看预置面板：
-   - 集群状态总览
-   - 复制延迟分析
-   - 资源使用率
-3. 自定义查询：
-   ```
-   rate(mysql_global_status_commands_total{command="query"}[5m])
-   ```
-4. 设置告警阈值：
-   - 节点离线
-   - 复制延迟 > 30s
-   - 磁盘使用率 > 80%
-</Tab>
-</Tabs>
+
+| 指标 | 默认监控指标                                                         |
+| -------- | ------------------------------------------------------------ |
+| Pod CPU Utilization | Pod's CPU usage. Pods with a CPU usage exceeding 100% will be ignored, because under normal circumstances the CPU usage will not exceed 100%. If it exceeds 100%, please check whether all containers of pod have set resource limits. |
+| Pod Memory Utilization | Pod's memory usage. Pods with a memory usage exceeding 100% will be ignored, because under normal circumstances memory usage will not exceed 100%. If it exceeds 100%, please check whether all containers of pod have set resource limits. |
+| Netwrok Received | The average bytes per second received from network in the past 5 minutes |
+| Netwrok Transmitted | The average bytes per second sent onto network in the last 5 minutes |
+| PVC Used | PVC storage usage. |
+| MySQL Connections | Max Connections is the maximum permitted number of simultaneous client connections. By default, this is 151. Increasing this value increases the number of file descriptors that mysqld requires. |
+| MySQL Client Thread Activity | Threads Connected is the number of open connections, while Threads Running is the number of threads not sleeping. |
+| MySQL Table Locks | MySQL takes a number of different locks for varying reasons. In this graph we see how many Table level locks MySQL has requested from the storage engine. |
+| MySQL Sorts | This graph also shows when sorts had to scan a whole table or a given range of a table in order to return the results and which could not have been sorted via an index |
+| MySQL Slow Queries | Slow queries are defined as queries being slower than the long_query_time setting. |
+| InnoDB Buffer Pool Requests | InnoDB Buffer Pool Requests refers to the total number of read and write requests made to the InnoDB buffer pool. |
+| TPS | Transactions Per Second (TPS) is a key performance metric that measures the number of transactions MySQL processes per second. |
+| Commands | Commands refers to the number of SQL statements executed by MySQL, including queries, inserts, updates, deletes, and other database operations. |

@@ -14,9 +14,9 @@ weight: 20
 
 ## 数据流程
 
-1. 客户端请求通过MySQL Router接入
-2. Router根据请求类型路由到合适的MySQL节点
-3. 写操作通过Group Replication同步到所有节点
+1. 客户端请求通过 MySQL Router 的 Service 接入
+2. Router根据请求类型路由到合适的 MySQL 节点
+3. 写操作通过 Group Replication 同步到所有节点
 4. 读操作可以路由到任意可用节点
 
 ## 部署架构

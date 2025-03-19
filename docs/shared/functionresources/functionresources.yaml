@@ -1599,7 +1599,7 @@ items:
     annotations:
       auth.cpaas.io/functionresource.function.id: "2"
       auth.cpaas.io/functionresource.module.id: "8"
-      cpaas.io/functionresource.function.display-name: MySQL (PXC) 用户管理
+      cpaas.io/functionresource.function.display-name: MySQL 用户管理
       cpaas.io/functionresource.function.display-name.en: MySQL (PXC) User
       cpaas.io/functionresource.module.display-name: Data Service
       cpaas.io/functionresource.module.display-name.en: Data Service
