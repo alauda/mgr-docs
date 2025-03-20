@@ -1,0 +1,562 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.0
+  name: mysqlbackups.mysql.middleware.alauda.io
+spec:
+  group: mysql.middleware.alauda.io
+  names:
+    kind: MySQLBackup
+    listKind: MySQLBackupList
+    plural: mysqlbackups
+    shortNames:
+    - mgr-backup
+    - mgr-bk
+    singular: mysqlbackup
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The backup state
+      jsonPath: .status.state
+      name: State
+      type: string
+    - description: The backup cluster
+      jsonPath: .spec.cluster.name
+      name: Cluster
+      type: string
+    - description: The backup type
+      jsonPath: .spec.type
+      name: Type
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: MySQLBackup is the Schema for the mysqlbackups API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MySQLBackupSpec defines the desired state of MySQLBackup
+            properties:
+              cluster:
+                description: Cluster is the name of source cluster.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              fullExecutor:
+                description: Executor is the executor of full backup.
+                type: string
+              mysqlShellDump:
+                description: DumpOption is the dump option for backup.
+                properties:
+                  excludeSchemas:
+                    description: ExcludeSchemas specifies the schemas to exclude from
+                      the backup.
+                    items:
+                      type: string
+                    type: array
+                  excludeTables:
+                    description: ExcludeTables specifies the tables to exclude from
+                      the backup, using the 'schema.table' format.
+                    items:
+                      type: string
+                    type: array
+                  includeSchemas:
+                    description: IncludeSchemas specifies the schemas to include in
+                      the backup.
+                    items:
+                      type: string
+                    type: array
+                  includeTables:
+                    description: IncludeTables specifies the tables to include in
+                      the backup, using the 'schema.table' format.
+                    items:
+                      type: string
+                    type: array
+                  maxRate:
+                    description: MaxRate specifies the maximum rate at which data
+                      is transferred during the backup operation.
+                    type: integer
+                  threads:
+                    description: Threads specifies the number of threads to use for
+                      the backup operation.
+                    type: integer
+                type: object
+              storage:
+                description: Storage is the storage information of backup for.
+                properties:
+                  s3:
+                    description: S3 means s3 compatible object storage
+                    properties:
+                      bucket:
+                        description: Bucket in which to store the Backup.
+                        type: string
+                      endpoint:
+                        description: Endpoint (hostname only or fully qualified URI)
+                          of S3 compatible storage service.
+                        type: string
+                      region:
+                        description: Region in which the S3 compatible bucket is located.
+                        type: string
+                      secret:
+                        description: Secret is a reference to the Secret containing
+                          the credentials authenticating with the S3 compatible storage
+                          service.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                type: object
+              storeMeta:
+                description: StoreMeta is the flag of store meta data.
+                type: boolean
+              type:
+                description: Type means full or increment backup.
+                type: string
+            type: object
+          status:
+            description: MySQLBackupStatus defines the observed state of MySQLBackup
+            properties:
+              allocated:
+                description: Allocated is the name of pod allocate to.
+                type: string
+              dataEndTime:
+                description: DataEndTime is the stop time of increment backup or full
+                  backup data.
+                format: date-time
+                type: string
+              dataStartTime:
+                description: DataStartTime is the start time of increment backup data.
+                format: date-time
+                type: string
+              executor:
+                description: Executor is the executor of backup.
+                type: string
+              finishTime:
+                description: FinishTime is the finish time of backup runs.
+                format: date-time
+                type: string
+              gtidEnd:
+                description: GtidEnd is the stop gtid of backup data
+                type: string
+              gtidFullPrevious:
+                description: FullGtid is the gtid of full backup if skip a full backup.
+                type: string
+              gtidPrevious:
+                description: GtidPrevious is the gtid of previous backup.
+                type: string
+              gtidStart:
+                description: GtidStart is the start gtid of backup data
+                type: string
+              mark:
+                description: Mark is the mark of backup
+                type: string
+              memberSize:
+                description: MemberSize is the size of cluster member.
+                type: integer
+              message:
+                description: Message is the message of run result of backup
+                type: string
+              path:
+                description: Path is the path of the file stored in storage.
+                type: string
+              startTime:
+                description: StartTime is the start time of backup runs.
+                format: date-time
+                type: string
+              state:
+                description: State is the backup state and enumeration of success,
+                  fail or running.
+                type: string
+              storeMeta:
+                description: StoreMeta is the flag of store meta CR.
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MySQLBackup is the Schema for the mysqlbackups API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MySQLBackupSpec defines the desired state of MySQLBackup
+            properties:
+              cluster:
+                description: Cluster is the name of source cluster.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              executor:
+                description: Executor is the configuration of the tool that will produce
+                  the backup, and a definition of what databases and tables to backup.
+                properties:
+                  mysqlbinlog:
+                    description: 增量备份
+                    properties:
+                      compression:
+                        description: Compression 日志打包的压缩算法，支持：gzip、bz2
+                        type: string
+                      option:
+                        description: SpecOpt 备份可选项，可以设置一些备份条件，比如基于起始的GTID
+                        properties:
+                          index:
+                            description: Index 存储的备份文件索引，用于搜索文件排序
+                            type: integer
+                          startGTID:
+                            description: StartGTID 起始的备份GTID
+                            type: string
+                        type: object
+                    type: object
+                  mysqldump:
+                    description: MySQLDumpBackupExecutor executes backups using mysqldump.
+                    properties:
+                      databases:
+                        items:
+                          description: Database represents a database to backup.
+                          properties:
+                            name:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                    type: object
+                  useBinlog:
+                    description: UseBinlog 是否开启增量备份
+                    type: boolean
+                type: object
+              fullExecutor:
+                description: Executor is the executor of full backup.
+                type: string
+              mysqlShellDump:
+                description: DumpOption is the dump option for backup.
+                properties:
+                  excludeSchemas:
+                    description: ExcludeSchemas specifies the schemas to exclude from
+                      the backup.
+                    items:
+                      type: string
+                    type: array
+                  excludeTables:
+                    description: ExcludeTables specifies the tables to exclude from
+                      the backup, using the 'schema.table' format.
+                    items:
+                      type: string
+                    type: array
+                  includeSchemas:
+                    description: IncludeSchemas specifies the schemas to include in
+                      the backup.
+                    items:
+                      type: string
+                    type: array
+                  includeTables:
+                    description: IncludeTables specifies the tables to include in
+                      the backup, using the 'schema.table' format.
+                    items:
+                      type: string
+                    type: array
+                  maxRate:
+                    description: MaxRate specifies the maximum rate at which data
+                      is transferred during the backup operation.
+                    type: integer
+                  threads:
+                    description: Threads specifies the number of threads to use for
+                      the backup operation.
+                    type: integer
+                type: object
+              scheduledMember:
+                description: ScheduledMember is the Pod name of the Cluster member
+                  on which the Backup will be executed.
+                type: string
+              storage:
+                description: Storage is the storage information of backup for.
+                properties:
+                  s3:
+                    description: S3 means s3 compatible object storage
+                    properties:
+                      bucket:
+                        description: Bucket in which to store the Backup.
+                        type: string
+                      endpoint:
+                        description: Endpoint (hostname only or fully qualified URI)
+                          of S3 compatible storage service.
+                        type: string
+                      region:
+                        description: Region in which the S3 compatible bucket is located.
+                        type: string
+                      secret:
+                        description: Secret is a reference to the Secret containing
+                          the credentials authenticating with the S3 compatible storage
+                          service.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                type: object
+              storageProvider:
+                description: StorageProvider configures where and how backups should
+                  be stored.
+                properties:
+                  s3:
+                    description: S3StorageProvider represents an S3 compatible bucket
+                      for storing Backups.
+                    properties:
+                      bucket:
+                        description: Bucket in which to store the Backup.
+                        type: string
+                      credentialsSecret:
+                        description: CredentialsSecret is a reference to the Secret
+                          containing the credentials authenticating with the S3 compatible
+                          storage service.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      endpoint:
+                        description: Endpoint (hostname only or fully qualified URI)
+                          of S3 compatible storage service.
+                        type: string
+                      forcePathStyle:
+                        description: |-
+                          ForcePathStyle when set to true forces the request to use path-style addressing, i.e., `http://s3.amazonaws.com/BUCKET/KEY`.
+                          By default, the S3 client will use virtual hosted bucket addressing when possible (`http://BUCKET.s3.amazonaws.com/KEY`).
+                        type: boolean
+                      region:
+                        description: Region in which the S3 compatible bucket is located.
+                        type: string
+                    type: object
+                required:
+                - s3
+                type: object
+              storeMeta:
+                description: StoreMeta is the flag of store meta data.
+                type: boolean
+              type:
+                description: Type means full or increment backup.
+                type: string
+            required:
+            - cluster
+            type: object
+          status:
+            description: MySQLBackupStatus defines the observed state of MySQLBackup
+            properties:
+              allocated:
+                description: Allocated is the name of pod allocate to.
+                type: string
+              conditions:
+                items:
+                  description: PodCondition contains details for the current condition
+                    of this pod.
+                  properties:
+                    lastProbeTime:
+                      description: Last time we probed the condition.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human-readable message indicating details about
+                        last transition.
+                      type: string
+                    reason:
+                      description: Unique, one-word, CamelCase reason for the condition's
+                        last transition.
+                      type: string
+                    status:
+                      description: |-
+                        Status is the status of the condition.
+                        Can be True, False, Unknown.
+                        More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
+                      type: string
+                    type:
+                      description: |-
+                        Type is the type of the condition.
+                        More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              dataEndTime:
+                description: DataEndTime is the stop time of increment backup or full
+                  backup data.
+                format: date-time
+                type: string
+              dataStartTime:
+                description: DataStartTime is the start time of increment backup data.
+                format: date-time
+                type: string
+              executor:
+                description: Executor is the executor of backup.
+                type: string
+              finishTime:
+                description: FinishTime is the finish time of backup runs.
+                format: date-time
+                type: string
+              gtidEnd:
+                description: GtidEnd is the stop gtid of backup data
+                type: string
+              gtidFullPrevious:
+                description: FullGtid is the gtid of full backup if skip a full backup.
+                type: string
+              gtidPrevious:
+                description: GtidPrevious is the gtid of previous backup.
+                type: string
+              gtidStart:
+                description: GtidStart is the start gtid of backup data
+                type: string
+              mark:
+                description: Mark is the mark of backup
+                type: string
+              memberSize:
+                description: MemberSize is the size of cluster member.
+                type: integer
+              message:
+                description: Message is the message of run result of backup
+                type: string
+              outcome:
+                description: BackupOutcome describes the location of a Backup
+                properties:
+                  error:
+                    description: Error 返回错误信息
+                    type: string
+                  info:
+                    description: BackupInfo 结果返回信息
+                    properties:
+                      binlogs:
+                        description: BinLogs 当前包中包含的binlog文件
+                        items:
+                          type: string
+                        type: array
+                      index:
+                        description: Index 当前增量备份的文件名索引
+                        type: integer
+                      lastGTID:
+                        description: LastGTID 当前备份的结束GTID，一般用于增量备份
+                        type: string
+                      startGTID:
+                        description: StartGTID 当前备份的起始GTID
+                        type: string
+                    type: object
+                  location:
+                    description: Location is the Object Storage network location of
+                      the Backup.
+                    type: string
+                  state:
+                    description: State 返回状态：200-成功；204,205-部分成功； 500-失败
+                    type: integer
+                type: object
+              path:
+                description: Path is the path of the file stored in storage.
+                type: string
+              startTime:
+                description: StartTime is the start time of backup runs.
+                format: date-time
+                type: string
+              state:
+                description: State is the backup state and enumeration of success,
+                  fail or running.
+                type: string
+              storeMeta:
+                description: StoreMeta is the flag of store meta CR.
+                type: boolean
+              timeCompleted:
+                description: TimeCompleted is the time at which the backup completed.
+                format: date-time
+                type: string
+              timeStarted:
+                description: TimeStarted is the time at which the backup was started.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: false
+    storage: false
+    subresources:
+      status: {}

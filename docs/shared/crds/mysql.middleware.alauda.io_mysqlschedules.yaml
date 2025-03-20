@@ -1,0 +1,198 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.0
+  name: mysqlschedules.mysql.middleware.alauda.io
+spec:
+  group: mysql.middleware.alauda.io
+  names:
+    kind: MySQLSchedule
+    listKind: MySQLScheduleList
+    plural: mysqlschedules
+    shortNames:
+    - mgr-schedule
+    - mgr-sc
+    singular: mysqlschedule
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The specified cluster
+      jsonPath: .spec.cluster.name
+      name: Cluster
+      type: string
+    - description: The full backup schedule
+      jsonPath: .spec.full.enable
+      name: Full
+      type: boolean
+    - description: The full backup schedule latest time
+      jsonPath: .status.fullLatestTime
+      name: FullLatest
+      type: date
+    - description: The incr backup schedule
+      jsonPath: .spec.incr.enable
+      name: Incr
+      type: boolean
+    - description: The incr backup schedule latest time
+      jsonPath: .status.incrLatestTime
+      name: IncrLatest
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: MySQLSchedule is the Schema for the mysqlschedules API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MySQLScheduleSpec defines the desired state of MySQLSchedule
+            properties:
+              cluster:
+                description: Cluster is the name of source cluster.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              expiryDays:
+                description: ExpiryDays is the days of the latest backup data hold.
+                type: integer
+              full:
+                description: Full is the full backup schedule.
+                properties:
+                  cron:
+                    description: Cron is the scheduled backup time expressed using
+                      cron.
+                    type: string
+                  enable:
+                    description: Enable is enable or disable schedule backup.
+                    type: boolean
+                type: object
+              fullExecutor:
+                description: Executor is the executor of full backup.
+                type: string
+              incr:
+                description: Incr is the increment backup schedule.
+                properties:
+                  cron:
+                    description: Cron is the scheduled backup time expressed using
+                      cron.
+                    type: string
+                  enable:
+                    description: Enable is enable or disable schedule backup.
+                    type: boolean
+                type: object
+              mysqlShellDump:
+                description: DumpOption is the dump option for backup.
+                properties:
+                  excludeSchemas:
+                    description: ExcludeSchemas specifies the schemas to exclude from
+                      the backup.
+                    items:
+                      type: string
+                    type: array
+                  excludeTables:
+                    description: ExcludeTables specifies the tables to exclude from
+                      the backup, using the 'schema.table' format.
+                    items:
+                      type: string
+                    type: array
+                  includeSchemas:
+                    description: IncludeSchemas specifies the schemas to include in
+                      the backup.
+                    items:
+                      type: string
+                    type: array
+                  includeTables:
+                    description: IncludeTables specifies the tables to include in
+                      the backup, using the 'schema.table' format.
+                    items:
+                      type: string
+                    type: array
+                  maxRate:
+                    description: MaxRate specifies the maximum rate at which data
+                      is transferred during the backup operation.
+                    type: integer
+                  threads:
+                    description: Threads specifies the number of threads to use for
+                      the backup operation.
+                    type: integer
+                type: object
+              storage:
+                description: Storage is the storage information of backup for.
+                properties:
+                  s3:
+                    description: S3 means s3 compatible object storage
+                    properties:
+                      bucket:
+                        description: Bucket in which to store the Backup.
+                        type: string
+                      endpoint:
+                        description: Endpoint (hostname only or fully qualified URI)
+                          of S3 compatible storage service.
+                        type: string
+                      region:
+                        description: Region in which the S3 compatible bucket is located.
+                        type: string
+                      secret:
+                        description: Secret is a reference to the Secret containing
+                          the credentials authenticating with the S3 compatible storage
+                          service.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                type: object
+              storeMeta:
+                description: StoreMeta is the flag of store meta data.
+                type: boolean
+            type: object
+          status:
+            description: MySQLScheduleStatus defines the observed state of MySQLSchedule
+            properties:
+              fullLatestTime:
+                description: FullLatestTime is the full backup latest run time.
+                format: date-time
+                type: string
+              incrLatestTime:
+                description: IncrLatestTime is the increment backup latest run time.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

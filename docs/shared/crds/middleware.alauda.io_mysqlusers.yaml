@@ -1,0 +1,112 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.0
+  name: mysqlusers.middleware.alauda.io
+spec:
+  group: middleware.alauda.io
+  names:
+    kind: MysqlUser
+    listKind: MysqlUserList
+    plural: mysqlusers
+    singular: mysqluser
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: state
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: MysqlUser is the Schema for the mysqlusers API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MysqlUserSpec defines the desired state of MysqlUser
+            properties:
+              host:
+                description: Host is the host of the MySQL User
+                type: string
+              mysql:
+                description: Mysql is the name of the MySQL Cluster
+                type: string
+              privileges:
+                description: Privileges is the list of MySQL Privileges
+                items:
+                  description: Privilege defines the desired mysql Privilege
+                  properties:
+                    grants:
+                      description: Grants is the list of grants for the user
+                      items:
+                        type: string
+                      type: array
+                    targets:
+                      description: Targets is the list target of MySQL Databases or
+                        Tables
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              secretName:
+                description: SecretName is the name of the Secret for the MySQL User
+                  Password
+                type: string
+              user:
+                description: |-
+                  INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                  User is the name of the MySQL User
+                type: string
+            required:
+            - host
+            - mysql
+            - user
+            type: object
+          status:
+            description: MysqlUserStatus defines the observed state of MysqlUser
+            properties:
+              lastSyncTime:
+                description: LastSyncTime is the last time the MySQL User sync
+                format: date-time
+                type: string
+              reason:
+                description: Reason is the reason of the MySQL User sync failed
+                type: string
+              secretRef:
+                description: SecretRef is the reference of the Secret for the MySQL
+                  User Password
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              state:
+                description: State is the state of the MySQL User sync
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
