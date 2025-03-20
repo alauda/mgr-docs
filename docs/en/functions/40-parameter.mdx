@@ -1,0 +1,72 @@
+---
+weight: 40
+sourceSHA: 5dc9a375c3f12e62f6098167f97f82bdb85f7f66e9d939c8efcff78d6fa2c1f0
+---
+
+# Parameter Configuration
+
+## Overview
+
+Configuring appropriate MySQL parameters based on business scenarios can optimize the database's performance, better supporting business operations. In the MySQL-MGR instance, system parameters provided by MySQL and Percona are used by default. You can conveniently configure parameters through the interface.
+
+The platform provides parameter templates to define a set of desired MySQL parameters. When creating an instance, you can use parameter templates to batch modify the default parameters, and parameters not included in the template will retain their default values.
+Once the instance is running normally, MySQL parameters can be updated.
+
+For more parameter information, please refer to the [MySQL Official Documentation](https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html) and [Percona Official Documentation](https://docs.percona.com/percona-server/8.0/).
+
+## Notes
+
+Modifying parameter configurations will restart the Pods one by one, which may cause brief interruptions in business operations.
+
+## Procedure
+
+<Tabs>
+  <Tab label="CLI">
+    ```bash
+    kubectl patch mysql -n ${namespace} ${name} --type='merge' --patch '
+    spec:
+      params:
+        mysql:
+          mysqld:
+            max_connections: "1000"
+            binlog_expire_logs_seconds: "604800"
+    '
+    ```
+
+    You can modify the parameters by adjusting the spec.params.mysql in the CR, with the corresponding parameter keys being consistent with those in MySQL. As shown above, setting max\_connections to 1000 and binlog\_expire\_logs\_seconds to 604800, which equals 7 days.
+  </Tab>
+
+  <Tab label="Web Console">
+    #### Setting Parameters Using Recommended Templates
+
+    **Tip**: Please refer to [Parameter Templates] to create parameter templates.
+
+    - The platform provides a variety of parameter templates for any MySQL-MGR instance in the cluster. Each specification of the parameter template is set with system parameters such as `loose_group_replication_paxos_single_leader: ON` and `sql_generate_invisible_primary_key: ON` to enhance MySQL usability.
+
+    - The MySQL-MGR instance by default applies the parameter template named **ssd-2c4g-mysql-8.0-mgr**. When creating a MySQL-MGR instance, you can select the corresponding parameter template based on your storage medium and instance specifications.
+
+    #### Update Parameters
+
+    After updating the existing parameter configuration for an instance, the instance will automatically restart the MySQL replicas sequentially to apply the changes.
+
+    ##### Steps
+
+    1. Click **MySQL-MGR** in the left navigation bar.
+
+    2. Click ***Namespace Name***.
+
+    3. Click ***Instance Name***.
+
+    4. On the **Parameter Configuration** tab, click **Update Parameters**.
+
+    5. Configure the desired parameters, either individually or through bulk import.
+
+       **Note**: Ensure that the imported parameters do not include unsupported MySQL parameters, as this could prevent the instance from starting.
+
+    6. Click **Update**.
+
+    ##### Related Operations
+
+    If you want to reuse the parameter configuration of another instance, you can click to export parameters on the **Parameter Configuration** tab of the source instance, and refer to the parameter template to create a custom template for bulk parameter import.
+  </Tab>
+</Tabs>

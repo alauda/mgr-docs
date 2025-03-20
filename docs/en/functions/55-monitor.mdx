@@ -1,0 +1,32 @@
+---
+weight: 55
+sourceSHA: 20f428898f5252756dc9219ed1ae7a1be41374d3ca4835b42167544c8360ff22
+---
+
+# Monitoring
+
+## Function Overview
+
+The monitoring data embedded in the panel can be utilized for MySQL monitoring and alerts from the perspectives of resources, performance, and capacity, and it supports configuring notification strategies.
+
+The intuitively presented monitoring data can provide decision-making support for operations inspection or performance tuning.
+
+### Performance Monitoring Panel
+
+The platform defaults to collecting common monitoring indicators related to MySQL's resources, performance, and capacity. In the instance's **Monitoring** tab, real-time monitoring data of the indicators can be viewed.
+
+| Indicator                    | Default Monitoring Indicators                                                                                                                                                                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pod CPU Utilization          | Pod's CPU usage. Pods with a CPU usage exceeding 100% will be ignored, because under normal circumstances the CPU usage will not exceed 100%. If it exceeds 100%, please check whether all containers of the pod have set resource limits.                           |
+| Pod Memory Utilization       | Pod's memory usage. Pods with a memory usage exceeding 100% will be ignored, because under normal circumstances memory usage will not exceed 100%. If it exceeds 100%, please check whether all containers of the pod have set resource limits.                       |
+| Network Received             | The average bytes per second received from the network in the past 5 minutes                                                                                                                                                                                        |
+| Network Transmitted          | The average bytes per second sent onto the network in the last 5 minutes                                                                                                                                                                                            |
+| PVC Used                     | PVC storage usage.                                                                                                                                                                                                                                                   |
+| MySQL Connections            | Max Connections is the maximum permitted number of simultaneous client connections. By default, this is 151. Increasing this value increases the number of file descriptors that mysqld requires.                                                                      |
+| MySQL Client Thread Activity | Threads Connected is the number of open connections, while Threads Running is the number of threads that are not sleeping.                                                                                                                                       |
+| MySQL Table Locks            | MySQL takes a number of different locks for varying reasons. In this graph, we see how many table-level locks MySQL has requested from the storage engine.                                                                                                          |
+| MySQL Sorts                  | This graph also shows when sorts had to scan a whole table or a specified range of a table in order to return the results that could not have been sorted via an index.                                                                                             |
+| MySQL Slow Queries           | Slow queries are defined as queries that take longer than the long\_query\_time setting.                                                                                                                                                                          |
+| InnoDB Buffer Pool Requests  | InnoDB Buffer Pool Requests refer to the total number of read and write requests made to the InnoDB buffer pool.                                                                                                                                                   |
+| TPS                          | Transactions Per Second (TPS) is a key performance metric that measures the number of transactions MySQL processes per second.                                                                                                                                     |
+| Commands                     | Commands refer to the number of SQL statements executed by MySQL, including queries, inserts, updates, deletes, and other database operations.                                                                                                                        |

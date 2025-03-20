@@ -1,0 +1,58 @@
+---
+weight: 30
+sourceSHA: 2d2c221d16455ba3cdcaa9419501207e142c8741280257e7b65a2d8f1d043d06
+---
+
+# Stop/Start Instance
+
+## Feature Overview
+
+Provides the temporary stop and restart functions for instances, applicable for resource scheduling, maintenance, cost-saving, and other scenarios. Stopping an instance will retain all configurations and data but release the compute resources.
+
+## Prerequisites
+
+Stopping an instance requires the instance to be in **Processing**, **Running**, **Abnormal**, or **Unknown** status.
+
+Starting an instance requires the instance to be in **Stopping** or **Stopped** status.
+
+## Notes
+
+To ensure data safety, it is recommended to perform a full backup before stopping the instance.
+
+1. Stopping an instance will terminate all database connections.
+2. PVC containing MySQL data will be retained.
+3. After restarting, it is necessary to verify the completeness of the MGR topology.
+
+## Operation Steps
+
+<Tabs>
+  <Tab label="CLI">
+    #### Stop Instance
+
+    ```bash
+    kubectl patch mysql ${name} -n ${namespace} --type='merge' -p '{"spec":{"pause":true}}'
+    ```
+
+    #### Start Instance
+
+    ```bash
+    kubectl patch mysql ${name} -n ${namespace} --type='merge' -p '{"spec":{"pause":false}}'
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Select **MySQL-MGR** from the left navigation bar.
+    2. Enter the target namespace.
+    3. Select the target instance.
+
+    #### Stop Instance
+
+    1. Click **Actions > Stop**.
+    2. Confirm the operation and wait for the status to change to "Stopped."
+
+    #### Start Instance
+
+    1. In the operation menu of the stopped instance, click **Start**.
+    2. Wait for the status to change to "Running."
+  </Tab>
+</Tabs>

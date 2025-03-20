@@ -1,0 +1,44 @@
+---
+weight: 50
+sourceSHA: 35876b820c488daf7dd89dab6311cb7455d69884a2560ddde921456a1854beec
+---
+
+# Log Query
+
+## Feature Introduction
+
+Understand the logs during the instance operation process from the container level, such as MySQL error logs. Proper use of logs can help you quickly locate issues and handle faults and exceptions.
+
+## Operation Steps
+
+<Tabs>
+  <Tab label="CLI">
+    1. View all related pods of the instance, including the mysql pod and mysql-router pod.
+
+    ```bash
+    kubectl get pod -n ${namespace} -l "middleware.instance/name=${instance_name}"
+    ```
+
+    2. Query the logs for a specific pod.
+
+    ```bash
+    kubectl logs -n ${namespace} ${pod_name}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. In the left navigation bar, click **MySQL-MGR**.
+
+    2. Click ***Name of the Namespace***.
+
+    3. Click ***Instance Name***.
+
+    4. In the **Logs** tab, set the search criteria.
+
+       - To search for logs of a specific Pods of MySQL replicas: At **Pods**, select a Pod and click **Search**.
+
+       - To search for logs within a specific time range: At **Time Range**, select a time period.
+
+    5. Wait a moment and view the results.
+  </Tab>
+</Tabs>

@@ -1,0 +1,38 @@
+---
+weight: 5
+sourceSHA: 65a9f977f139d9e6ea502aa9cc4461a988588e9a3714b053a63722d98db44e49
+---
+
+# Delete Instance
+
+::: tip Resources to be Deleted
+Deleting an instance will automatically remove all safely deletable resources created by the instance, such as StatefulSets, Deployments, ConfigMaps, Secrets, and Services. Special resources that may contain important data need to be deleted manually, such as PersistentVolumeClaims and backup resources associated with MySQL-MGR, specifically mysqlbackups.mysql.middleware.alauda.io and its related actual data.
+:::
+
+## Steps to Follow
+
+<Tabs>
+  <Tab label="CLI">
+    1. Delete the instance
+
+    ```bash
+    kubectl delete mysql -n ${namespace} ${name}
+    ```
+
+    2. Clean up persistent data
+
+    ```bash
+    kubectl get pvc -n ${namespace} -l v1alpha1.mysql.middleware.alauda.io/cluster=${name} -o name | xargs kubectl delete -n ${namespace}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Go to the instance **Overview**
+    2. Click on **Delete Instance**
+    3. Choose deletion options:
+       - Optional: Delete PersistentVolumeClaim
+    4. Confirm deletion:
+       - Check associated resources
+       - Enter the instance name for final deletion confirmation
+  </Tab>
+</Tabs>

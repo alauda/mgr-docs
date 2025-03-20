@@ -1,0 +1,234 @@
+---
+weight: 20
+sourceSHA: 60c75ccc21ae9d932fa2cc1dbdc0017615bf6341077cf07678697881f7c93320
+---
+
+# Backup and Restore
+
+## Feature Introduction
+
+Database backup and recovery are critical functionalities to ensure data security and business continuity. By regularly backing up databases, it is possible to quickly recover data in the event of data loss, corruption, or inadvertent operations, thereby minimizing business interruptions and data loss.
+
+## Prerequisites:
+
+Prior to backup, please prepare an external S3 compatible storage based on the volume of business data.
+
+- External S3 Storage: S3 (Amazon Simple Storage Service) is an object storage service provided by Amazon. If you need to back up data to your own S3 bucket, please confirm with the administrator that the S3 storage has been integrated with your project.
+
+### Configure Storage Information
+
+<Tabs>
+  <Tab label="CLI">
+    Create S3 secret
+
+    ```bash
+    kubectl -n ${namespace} create secret generic ${secret_name} --from-literal=AWS_ACCESS_KEY_ID=${access_key} --from-literal=AWS_SECRET_ACCESS_KEY=${secret_key}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    Navigate to **Backup Center** -> **External S3 Storage** page, click create S3 storage, fill in the corresponding information, and create.
+
+    Ensure that the connectivity status of the external S3 storage shows as accessible.
+  </Tab>
+</Tabs>
+
+## Operation Steps
+
+### Configure Automatic Backup
+
+<Tabs>
+  <Tab label="CLI">
+    Add automatic backup configuration information in the spec of the mysqlschedules resource.
+
+    ```bash
+    kubectl patch mysqlschedules -n ${namespace} ${instance_name}-schedule --type='merge' --patch '
+    spec:
+      expiryDays: 7
+      full:
+        cron: 0 18 * * 6
+        enable: true
+      incr:
+        cron: 0 19 * * 0,1,2,3,4,5
+        enable: true
+      storage:
+        s3:
+          bucket: ${bucket}
+          endpoint: ${endpoint}
+          region: ${region}
+          secret:
+            name: ${secretName}
+    '
+    ```
+
+    | Parameter               | Description                       |
+    | ---------------------- | ------------------------------- |
+    | expiryDays             | Retention period for backup data |
+    | full.cron              | Cron expression for full backup  |
+    | incr.cron              | Cron expression for incremental backup |
+    | storage.s3.bucket      | Bucket name                      |
+    | storage.s3.endpoint    | S3 storage endpoint              |
+    | storage.s3.region      | S3 storage region                |
+    | storage.s3.secret.name | S3 storage secret name           |
+  </Tab>
+
+  <Tab label="Web Console">
+    1. In the left navigation bar, click **MySQL-MGR**.
+
+    2. Click on ***Namespace Name***.
+
+    3. Click on ***Instance Name***.
+
+    4. In the **Backup and Restore** tab, click edit.
+
+    5. Enable **Automatic Backup** and set parameters.
+
+       **Note**: The **Storage Location** is the S3 storage available for the current project.
+
+    6. Click **Update**.
+
+    **Note**:
+
+    - The timestamp in the automatic backup name is in UTC time (same as Controller Manager), indicating that this backup started executing at 18:00 on February 2, 2021, Beijing time.
+
+    - If it is time for automatic backup but the instance is not in the **Running** state, the platform will wait until the instance is ready to start the backup.
+  </Tab>
+</Tabs>
+
+### Create Manual Backup
+
+:::tip Prerequisite
+Ensure the instance status is **Running**
+:::
+
+<Tabs>
+  <Tab label="CLI">
+    1. Create a data backup
+
+    ```bash
+    kubectl -n ${namespace} create -f - <<EOF
+    apiVersion: mysql.middleware.alauda.io/v1
+    kind: MySQLBackup
+    metadata:
+      name: ${backup_name}
+      namespace: ${namespace}
+    spec:
+      cluster:
+        name: ${instance_name}
+      storage:
+        s3:
+          bucket: ${bucket}
+          endpoint: ${endpoint}
+          region: ${region}
+          secret:
+            name: ${secret_name}
+      type: ${type}
+    EOF
+    ```
+
+    | Parameter               | Description                     |
+    | ---------------------- | ------------------------------ |
+    | backup_name            | Backup resource name           |
+    | namespace              | The namespace where the instance to be backed up resides |
+    | instance_name          | The name of the instance to be backed up |
+    | storage.s3.bucket      | Bucket name                    |
+    | storage.s3.endpoint    | S3 storage endpoint            |
+    | storage.s3.region      | S3 storage region              |
+    | storage.s3.secret.name | S3 storage secret name         |
+    | type                   | Backup type: full or increment |
+
+    2. Wait for the backup to complete and check the backup status
+
+    ```bash
+    kubectl get MySQLBackup -n ${namespace} ${backup_name}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. In the left navigation bar, click **MySQL-MGR**.
+
+    2. Click on ***Namespace Name***.
+
+    3. Click on ***Instance Name***.
+
+    4. In the **Backup and Restore** tab, click **Create Data Backup**.
+
+    5. Set parameters and click **Create**. The backup duration depends on the data volume and network conditions, please be patient.
+  </Tab>
+</Tabs>
+
+### Restore Using Backup
+
+<Tabs>
+  <Tab label="CLI">
+    1. Create MySQLRestore to restore data
+
+    ```bash
+    kubectl -n ${namespace} create -f - <<EOF
+    apiVersion: middleware.alauda.io/v1
+    kind: MySQLRestore
+    metadata:
+      labels:
+        mysql/arch: mgr
+      name: ${restore_name}
+      namespace: ${namespace}
+    spec:
+      mgr:
+        backup:
+          name: ${backup_name}
+        cluster:
+          name: ${target_instance_name}
+        source:
+          name: ${source_instance_name}
+    EOF
+    ```
+
+    | Parameter               | Description                     |
+    | ---------------------- | ------------------------------- |
+    | restore_name           | Restore resource name           |
+    | namespace              | The namespace where the instance to be restored resides |
+    | backup_name            | The full backup resource name to be used |
+    | target_instance_name   | The name of the instance to restore data to |
+    | source_instance_name   | The instance name from which the backup resource is sourced |
+
+    2. Wait for the restore to complete and check the restore status
+
+    ```bash
+    kubectl get MySQLRestore -n ${namespace} ${restore_name}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. In the left navigation bar, click **MySQL-MGR**.
+
+    2. Click on ***Namespace Name***.
+
+    3. Click on ***Instance Name***.
+
+    4. In the **Backup and Restore** tab, click **Restore**.
+
+    5. Select the target instance and click **Restore**. Please be patient until the restore record shows as **Restore Successful**.
+  </Tab>
+</Tabs>
+
+### Delete Backup
+
+<Tabs>
+  <Tab label="CLI">
+    ```bash
+    kubectl delete MySQLBackup -n ${namespace} ${backup_name}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. In the left navigation bar, click **MySQL-MGR**.
+
+    2. Click on ***Namespace Name***.
+
+    3. Click on ***Instance Name***.
+
+    4. In the **Backup and Restore** tab, click **Delete** and confirm.
+
+       Deleting S3 backup data will also remove the data from S3 storage.
+  </Tab>
+</Tabs>

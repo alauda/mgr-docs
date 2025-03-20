@@ -1,0 +1,91 @@
+---
+weight: 15
+i18n:
+  title:
+    en: Installation
+sourceSHA: 9949daebeb894d22a467ab73ec41e4656c8555015f3e63b06eeea6fd6ae63b34
+title: Installation
+---
+
+# Deployment
+
+## Installing the Alauda Application Services Essentials Plugin
+
+::: tip Optional Deployment
+The plugin serves as a foundational component for the Application Services graphical interface. It is not necessary to deploy it if the graphical interface is not required.
+:::
+
+### Prerequisites
+
+1. Download the Alauda Application Services Essentials installation package that matches the platform.
+2. Use the platform's application publishing capability to publish the Alauda Application Services Essentials to the ***global cluster***.
+
+### Steps
+
+<Tabs>
+  <Tab label="Web Console">
+    1. In the left navigation bar, go to **App Store Management** > **Cluster Plugins**.
+    2. Select the **global** cluster.
+    3. Click the action button next to the **Alauda Application Services Essentials** plugin > **Deploy**.
+  </Tab>
+</Tabs>
+
+## Installing the Alauda Application Services RDS Framework Plugin
+
+::: tip Optional Deployment
+The plugin serves as a foundational component for the Application Services graphical interface. It is not necessary to deploy it if the graphical interface is not required.
+:::
+
+### Prerequisites
+
+1. Download the Alauda Application Services RDS Framework installation package that matches the platform.
+2. Use the platform's application publishing capability to publish the Alauda Application Services RDS Framework to any cluster where Application Services graphical capabilities are desired.
+
+### Steps
+
+<Tabs>
+  <Tab label="Web Console">
+    1. Log in to the platform and navigate to the **Platform Management** page.
+    2. In the left navigation bar, select **App Store Management** -> **Operator** to enter the **Operator Hub** page.
+    3. Find **Alauda Application Services RDS Framework**, click **Deploy** to access the deployment page.
+
+    Configuration Parameters:
+
+    | **Parameter**   | **Recommended Configuration**                                       |
+    | :-------------- | :----------------------------------------------------------------- |
+    | **Upgrade Policy** | **Manual**: When a new version is available in the Operator Hub, manual confirmation is required to upgrade the Operator to the latest version. |
+    | **Deployment Mode** | **Cluster**: All namespaces under the cluster share one Operator for creating and managing instances, resulting in lower resource usage. |
+    | **Channel**     | The default Channel is **stable**.                                 |
+    | **Namespace**   | Choose the **Recommended Namespace**: If none exists, it will be created automatically. |
+
+    4. On the **Deploy Operator** page, select **Default Configuration**, then click **Deploy** to complete the deployment of **Alauda Application Services RDS Framework**.
+  </Tab>
+</Tabs>
+
+## Installing the Alauda Cache Service for Redis OSS Plugin
+
+### Prerequisites
+
+1. Download the plugin installation package that matches the platform.
+2. Use the platform's application publishing capability to publish the plugin to any cluster where Alauda Cache Service for Redis OSS capabilities are desired.
+
+### Steps
+
+<Tabs>
+  <Tab label="Web Console">
+    1. Log in to the platform and navigate to the **Platform Management** page.
+    2. In the left navigation bar, select **App Store Management** -> **Operator** to enter the **Operator Hub** page.
+    3. Find **Alauda Database Service for MySQL**, click **Deploy** to access the deployment page.
+
+    Configuration Parameters:
+
+    | **Parameter**   | **Recommended Configuration**                                       |
+    | :-------------- | :----------------------------------------------------------------- |
+    | **Upgrade Policy** | **Manual**: When a new version is available in the Operator Hub, manual confirmation is required to upgrade the Operator to the latest version. |
+    | **Deployment Mode** | **Cluster**: All namespaces under the cluster share one Operator for creating and managing instances, resulting in lower resource usage. |
+    | **Channel**     | The default Channel is **alpha**.                                  |
+    | **Namespace**   | Choose the **Recommended Namespace**: If none exists, it will be created automatically. |
+
+    4. On the **Deploy Operator** page, select **Default Configuration**, then click **Deploy** to complete the deployment.
+  </Tab>
+</Tabs>

@@ -1,0 +1,35 @@
+---
+weight: 10
+sourceSHA: 5996a90db3ace33dcec60ef80d5ce6278c6a218bfcb72d545eab9312a04ca939
+---
+
+# Introduction
+
+Alauda Database for MySQL-MGR is a high availability database solution based on MySQL Group Replication technology and runs on Kubernetes. It provides automated deployment and management capabilities for MySQL Group Replication clusters.
+
+## Core Advantages
+
+- **High Availability**: Provides multi-master replication and high availability based on MySQL Group Replication
+- **Automated Management**: Automatically manages MySQL clusters via Operator
+- **Elastic Scalability**: Supports online scaling up and down
+- **Data Consistency**: Ensures strong data consistency based on the Paxos protocol
+- **Read-Write Splitting**: Supports read-write splitting through MySQL Router
+
+## Application Scenarios
+
+- Mission-critical databases requiring high availability
+- Distributed database scenarios requiring multi-master writes
+- Cloud-native databases requiring elastic scalability
+
+## Usage Limitations
+
+- Group Member Count: The maximum number of MySQL replication group members is 9. At least 3 members are recommended to ensure high availability.
+- InnoDB Engine: Relies on the InnoDB storage engine; it is recommended to configure `disabled_storage_engines="MyISAM,BLACKHOLE,FEDERATED,ARCHIVE,MEMORY"` to disable unsupported storage engines.
+- Explicit Primary Key: Each table to be replicated must have a defined primary key or an equivalent primary key, where equivalents are non-null unique keys. Configure `sql_generate_invisible_primary_key: ON` to support tables without explicitly defined primary keys.
+- Network Quality: Designed to be deployed in cluster environments where server instances are located very close to each other, resulting in low network latency. High network latency can lead to replication delays or even replication failures.
+- Isolation Level Restrictions: It is recommended to use the READ COMMITTED isolation level; the SERIALIZABLE isolation level is not supported.
+- Foreign Key Restrictions: Cascading foreign keys are not recommended in multi-master mode.
+- Multi-Master Deadlocks: In multi-master mode, deadlocks may occur when using `SELECT .. FOR UPDATE` statements because locks are not shared among members.
+- Concurrent DDL and DML Conflicts: In multi-master mode, DDL and DML operations may cause conflicts; it is recommended to avoid concurrent DDL and DML operations.
+- Transaction Size Limitations: Ensure that the transaction size is within the group_replication_transaction_size_limit range (default approximately 143 MB) and can be completed within the group_replication_member_expel_timeout period (default 5s).
+- Heterogeneous Architecture Limitations: Due to limitations of the MySQL Clone plugin, heterogeneous scenarios are currently not supported.
