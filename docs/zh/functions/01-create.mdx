@@ -13,27 +13,27 @@ weight: 1
 
 ## 操作步骤
 <Tabs>
-    <Tab label="命令行操作">
-        1. 创建密码
-        ```bash
-        kubectl -n ${namespace} create secret generic mgr-${instance_name}-password \
-        --from-literal=clusterchecker={password} \
-        --from-literal=exporter=${password} \
-        --from-literal=manage=${password} \
-        --from-literal=root=${password}
-        ```
+<Tab label="CLI">
+1. 创建密码
+```bash
+kubectl -n ${namespace} create secret generic mgr-${instance_name}-password \
+--from-literal=clusterchecker={password} \
+--from-literal=exporter=${password} \
+--from-literal=manage=${password} \
+--from-literal=root=${password}
+```
 
-        ::: info
+::: info
 
-        - `${instance_name}` 为实例名称，用于标识实例，不可重复。
-        - `${namespace}` 为实例所属的命名空间
-        - `${password}` 为密码，上面多个用户可以分别设置不同的密码
+- `${instance_name}` 为实例名称，用于标识实例，不可重复。
+- `${namespace}` 为实例所属的命名空间
+- `${password}` 为密码，上面多个用户可以分别设置不同的密码
 
-        :::
+:::
 
-        2. 创建实例CR
-        ```bash
-        kubectl apply -n $namespace -f - <<EOF
+2. 创建实例CR
+```bash
+kubectl apply -n $namespace -f - <<EOF
 apiVersion: middleware.alauda.io/v1
 kind: Mysql
 metadata:
@@ -164,30 +164,28 @@ spec:
     autoUpgrade: false
   version: "8.0"
 EOF
-        ```
-
-        3. 验证实例状态
-        ```bash
-        kubectl get mysql -n {namespace} {instance_name} -w
-        ```
-    </Tab>
-
-    <Tab label="界面操作">
-        1. 在左侧导航栏选择 **MySQL-MGR**
-        2. 进入目标命名空间
-        3. 点击 **创建实例**
-        4. 配置基本参数：
-        - 实例名称：唯一标识符
-        - 架构配置: 单主(默认)/多主
-        5. 资源配置：
-        - 副本数：建议3节点起
-        - 规格: MySQL成员的 CPU/Memory 请求值与限制值
-        - 存储类：选择TopoLVM类型的存储类
-        - 存储大小：根据业务评估存储需求
-        6. 账户资源：
-        - 配置 root 管理员密码
-        7. 连接配置：
-        - 访问方式: 集群外访问/集群内访问
-        8. 点击 **创建** 并等待状态变为运行中
-    </Tab>
+```
+3. 验证实例状态
+```bash
+kubectl get mysql -n {namespace} {instance_name} -w
+```
+</Tab>
+<Tab label="Web Console">
+1. 在左侧导航栏选择 **MySQL-MGR**
+2. 进入目标命名空间
+3. 点击 **创建实例**
+4. 配置基本参数：
+- 实例名称：唯一标识符
+- 架构配置: 单主(默认)/多主
+5. 资源配置：
+- 副本数：建议3节点起
+- 规格: MySQL 成员的 CPU/Memory 请求值与限制值
+- 存储类：选择 TopoLVM 类型的存储类
+- 存储大小：根据业务评估存储需求
+6. 账户资源：
+- 配置 root 管理员密码
+7. 连接配置：
+- 访问方式: 集群外访问/集群内访问
+8. 点击 **创建** 并等待状态变为运行中
+</Tab>
 </Tabs>

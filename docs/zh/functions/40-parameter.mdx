@@ -3,28 +3,32 @@ weight: 40
 ---
 # 参数配置
 
-## 核心参数
-```yaml
-group_replication_group_name: "acec66a9-1733-11ee-ae33-00163e0c9b29"
-group_replication_start_on_boot: ON
-group_replication_consistency: BEFORE
-group_replication_flow_control_mode: QUOTA
-```
+## 功能简介
+根据业务场景配置合适的 MySQL 参数可使数据库达到最佳使用状态，更好地支撑业务。MySQL-MGR 实例中默认使用 MySQL 及 Percona 官方提供的系统参数。您也可在界面便捷地配置参数。
+
+平台提供参数模板用于定义一系列您期望的 MySQL 参数。创建实例时可通过参数模板批量修改默认参数，模板中未涉及的参数将维持默认值不变。
+实例正常运行后，可更新 MySQL 参数。
+
+更多参数信息请查阅 [MySQL 官网](https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html) 及 [Percona 官网](https://docs.percona.com/percona-server/8.0/) 。
+
+## 注意事项
+修改参数配置将逐个重启容器组，可能会造成业务的短暂中断。
+
 
 ## 操作步骤
 <Tabs>
 <Tab label="CLI">
-1. 在线修改参数
 ```bash
-kubectl patch mysql $name -n $namespace --type merge -p '
+kubectl patch mysql -n ${namespace} ${name} --type='merge' --patch '
 spec:
-  config:
+  params:
     mysql:
-      group_replication_auto_increment_increment: 3
+      mysqld:
+        max_connections: "1000"
+        binlog_expire_logs_seconds: "604800"
 '
 ```
-
-2. 等待滚动生效
+可以通过修改 CR 中的 spec.params.mysql 来修改参数，对应的参数 key 同 MySQL 参数一致。如上，指定 max_connections 为 1000，binlog_expire_logs_seconds 为 604800 也就是 7 天。
 
 </Tab>
 
@@ -34,9 +38,9 @@ spec:
 
 **提示**：创建参数模板请参考 [参数模板]。
 
-* 平台提供了多种规格的参数模板，供集群中任意 MySQL-MGR 实例使用。每种规格的参数模板均设置了 `innodb_flush_log_at_trx_commit = 1`、`sync_binlog = 1` 等系统参数，帮助提高 MySQL 安全性。
+* 平台提供了多种规格的参数模板，供集群中任意 MySQL-MGR 实例使用。每种规格的参数模板均设置了 `loose_group_replication_paxos_single_leader: ON`、`sql_generate_invisible_primary_key: ON` 等系统参数，帮助提高 MySQL 易用性。
 
-* MySQL-MGR 实例默认应用名称为 **hhd-1c2g-mgr-template** 的参数模板，您在创建 MySQL-MGR 实例时可根据实际的磁盘介质与实例规格选择对应的参数模板。
+* MySQL-MGR 实例默认应用名称为 **ssd-2c4g-mysql-8.0-mgr** 的参数模板，您在创建 MySQL-MGR 实例时可根据实际的磁盘介质与实例规格选择对应的参数模板。
 
 #### 更新参数
 
@@ -61,7 +65,6 @@ spec:
 ##### 相关操作
 
 如需复用其他实例的参数配置，您可以在源实例的 **参数配置** 页签下，单击导出参数，并参考参数模板创建自定义模板并批量导入参数。
-
 
 </Tab>
 </Tabs>
