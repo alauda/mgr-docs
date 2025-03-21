@@ -12737,9 +12737,12 @@ spec:
                       additionalProperties:
                         type: string
                       type: object
+                    description: 'Paras deprecated: this field is deprecated, please
+                      use spec.params instead'
                     nullable: true
                     type: object
                   password:
+                    description: 'Password Deprecated: this field is deprecated'
                     format: byte
                     type: string
                   pause:
