@@ -1,0 +1,146 @@
+---
+weight: 50
+sourceSHA: 6de5193b1f91f44e7880f1e9e76832add1847ded06798757e5f9a9c9446aa667
+---
+
+# How To Access MySQL-MGR Instances
+
+There are multiple ways to connect to a MySQL-MGR instance when accessing it from a business application. This section describes how to choose a connection address to access the MySQL-MGR instance and provides examples for demonstration.
+
+## Applicable scenarios
+
+| Access Method | Applicable Scenarios |
+| --- | --- |
+| **Access within the Cluster** | In single-master or multi-master mode, applications within the cluster access the MGR instance through the port exposed by the SVC. |
+| **Access from outside the Cluster** | In single-master or multi-master mode, applications outside the cluster access the MGR instance through the NodePort port. |
+
+## Common client programs
+
+The example demonstrates programs using JDBC and GORM clients. Please refer to the corresponding framework documentation for other clients.
+
+When using the code, please modify the relevant variables to your actual values. The variable descriptions are as follows:
+
+| Variable | Description |
+| --- | --- |
+| **host** | The IP or SVC name of the host for the corresponding access method |
+| **port** | The port number for the corresponding access method |
+| **user** | The username for MySQL-MGR |
+| **password** | The actual password for the MySQL-MGR user |
+| **database** | The name of the database to be accessed |
+
+### JDBC
+
+1. Cluster Internal Access
+
+    ```
+    import java.sql.*;
+    public class Main {
+        static final String DB_URL = "jdbc:mysql://mgr-0:3306,mgr-1:3306,mgr-2:3306/mysql";
+        static final String USER = "root";
+        static final String PASS = "123456";
+        public static void main(String[] args) {
+            try {
+                Connection conn = DriverManager.getConnection(DB_URL,USER,PASS);
+                Statement statement = conn.createStatement();
+            }catch(SQLException se){
+                se.printStackTrace();
+            }
+        }
+    }
+    ```
+
+2. External Access to the Cluster - via NodePort
+
+    ```
+    import java.sql.*;
+    public class Main {
+        static final String DB_URL = "jdbc:mysql://192.168.1.100:32630,192.168.1.101:32630,192.168.1.102:32630/mysql";
+        static final String USER = "root";
+        static final String PASS = "123456";
+        public static void main(String[] args) {
+            try {
+                Connection conn = DriverManager.getConnection(DB_URL,USER,PASS);
+                Statement statement = conn.createStatement();
+            }catch(SQLException e){
+                e.printStackTrace();
+            }
+        }
+    }
+    ```
+
+### GORM
+
+1. Cluster Internal Access
+
+    ```
+    import (
+        "gorm.io/driver/mysql"
+        "gorm.io/gorm"
+        "gorm.io/plugin/dbresolver"
+    )
+
+    func main() {
+        writeDSN:="root:123456@tcp(mgr-read-write:32631)/mysql"
+        readDSN := "root:123456@tcp(mgr-read-only:32630)/mysql"
+        db, err := gorm.Open(mysql.Open(writeDSN), &gorm.Config{})
+        if err != nil {
+            panic(err)
+        }
+        err = db.Use(dbresolver.Register(dbresolver.Config{
+            Replicas:          []gorm.Dialector{mysql.Open(readDSN)},
+            Policy:            dbresolver.RandomPolicy{},
+            TraceResolverMode: true,
+        }))
+        if err != nil {
+            panic(err)
+        }
+    }
+    ```
+
+2. External Access to the Cluster - via NodePort
+
+    ```
+    package main
+
+    import (
+        "gorm.io/driver/mysql"
+        "gorm.io/gorm"
+        "gorm.io/plugin/dbresolver"
+    )
+
+    func main() {
+        writeDSNs := []string{
+            "root:123456@tcp(192.168.18.130:32631)/mysql",
+            "root:123456@tcp(192.168.18.131:32631)/mysql",
+            "root:123456@tcp(192.168.18.132:32631)/mysql",
+        }
+        readDSNs := []string{
+            "root:123456@tcp(192.168.18.131:32630)/mysql",
+            "root:123456@tcp(192.168.18.132:32630)/mysql",
+            "root:123456@tcp(192.168.18.133:32630)/mysql",
+        }
+        db, err := gorm.Open(mysql.Open(writeDSNs[0]), &gorm.Config{})
+        if err != nil {
+            panic(err)
+        }
+        sources := make([]gorm.Dialector, 0)
+        replicas := make([]gorm.Dialector, 0)
+        for _, dsn := range writeDSNs {
+            sources = append(sources, mysql.Open(dsn))
+        }
+        for _, dsn := range readDSNs {
+            replicas = append(replicas, mysql.Open(dsn))
+        }
+        err = db.Use(dbresolver.Register(dbresolver.Config{
+            Sources:           sources,
+            Replicas:          replicas,
+            Policy:            dbresolver.RandomPolicy{},
+            TraceResolverMode: true,
+        }))
+        if err != nil {
+            panic(err)
+        }
+    }
+    ```
+
+
