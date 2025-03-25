@@ -1,0 +1,56 @@
+---
+weight: 43
+---
+
+# 更新规格
+
+随着数据量增长，在资源使用量接近存储配额前应及时扩容，以确保业务的持续可用。
+
+## 限制说明
+- 变更 CPU 与 内存资源时，请根据业务情况与资源余量做评估，以避免资源过小或过大时实例扩容失败从而导致无法被正常拉起。
+- 组成员数量: 复制组成员的 MySQL 最大数量为9, 建议至少3个成员，以保证高可用性。
+
+
+## 操作步骤
+
+<Tabs>
+
+<Tab label="CLI">
+
+要变更实例规格，可通过字段 `spec.mgr.resources` 来控制(具体参考[API 文档](../../apis/kubernetes_apis/mgr/01-mysql-mgr))。
+
+```bash
+kubectl -n ${namespace} patch mysql ${instance_name} --type=merge --patch='{"spec":{"mgr": {"resources":{"server":{"limits":{"cpu": "4","memory":"8Gi"},"requests":{"cpu":"4", "memory":"8Gi"}}}}}}'
+```
+
+使用以下命令扩容存储容量：
+```bash
+kubectl patch mysql -n ${namespace} ${instance_name} --type='json' -p '[{"op":"replace","path":"/spec/mgr/volumeClaimTemplate/spec/resources/requests/storage","value":"${new_storage}"}]'
+```
+
+使用以下命令查看存储容量是否扩容成功：
+```bash
+kubectl get pvc -n ${namespace} -l "v1alpha1.mysql.middleware.alauda.io/cluster=${instance_name}
+```
+</Tab>
+<Tab label="Web Console">
+
+1. 在左侧导航栏中，单击 **MySQL-MGR**。
+
+2. 单击 ***命名空间的名称***。
+
+3. 单击 ***实例名称*** 。
+
+4. 在 **详细信息** 页签下，单击拓扑上方的 **更新规格**。
+
+5. 为对应的资源填入期望的副本数与新规格。
+
+6. 修改 **存储扩容** 中的 **新容量**， 填写希望扩增到的容量。
+
+7. 单击 **更新**。
+
+
+</Tab>
+</Tabs>
+
+稍等片刻，即可看到拓扑中的 **规格** 对应变化。

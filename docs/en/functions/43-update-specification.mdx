@@ -1,0 +1,54 @@
+---
+weight: 43
+sourceSHA: dd4cdcf8f8aff1430fa04fc27e97bf8b6f27fc4bcf0cfc3e6f1bdc5d4d946b4c
+---
+
+# Update Specification
+
+As data volume increases, it is crucial to expand the resources promptly before reaching the storage quota to ensure continuous availability of the service.
+It is important to expand storage in a timely manner before reaching the storage quota, to ensure the continuous availability of the business. The online expansion process will not affect the normal provision of services.
+
+## Restrictions
+- When changing CPU and memory resources, please evaluate based on business requirements and resource availability to avoid expansion failures due to insufficient or excessive resources, which may lead to the instance being unable to start normally.
+- Group Member Count: The maximum number of MySQL replication group members is 9. At least 3 members are recommended to ensure high availability.
+
+## Operation Steps
+
+<Tabs>
+  <Tab label="CLI">
+    To change the instance specifications, you can control it through the field `spec.mgr.resources` (refer to the [API documentation](../../apis/kubernetes_apis/mgr/mysql-mgr) for details).
+
+    ```bash
+    kubectl -n ${namespace} patch mysql ${instance_name} --type=merge --patch='{"spec":{"mgr": {"resources":{"server":{"limits":{"cpu": "4","memory":"8Gi"},"requests":{"cpu":"4", "memory":"8Gi"}}}}}}'
+    ```
+    Use the following command to expand the storage capacity:
+
+    ```bash
+    kubectl patch mysql -n ${namespace} ${instance_name} --type='json' -p '[{"op":"replace","path":"/spec/mgr/volumeClaimTemplate/spec/resources/requests/storage","value":"${new_storage}"}]'
+    ```
+
+    Use the following command to check whether the storage capacity expansion was successful:
+
+    ```bash
+    kubectl get pvc -n ${namespace} -l "v1alpha1.mysql.middleware.alauda.io/cluster=${instance_name}"
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Click on **MySQL-MGR** in the left navigation bar.
+
+    2. Click on ***namespace name***.
+
+    3. Click on ***instance name***.
+
+    4. In the **Details** tab, click on **Update Specification** above the topology.
+
+    5. Fill in the desired replica count and new specifications for the corresponding resources.
+
+    6. In **Storage Expansion**, modify **New Capacity** to specify the desired increased volume.
+
+    7. Click **Update**.
+  </Tab>
+</Tabs>
+
+After a moment, you will see the corresponding changes in the **Specifications** in the topology.
