@@ -19,7 +19,7 @@ kubectl -n ${namespace} create secret generic mgr-${instance_name}-${username}-p
 
 ::: info
 
-- `${instance_name}` 为期望创建用户的实例名称
+- `${instance_name}` 为期望创建用户的MySQL-MGR实例名称
 - `${namespace}` 为实例所属的命名空间
 - `${username}` 为期望创建的用户名
 - `${password}` 为期望设置的密码
@@ -28,18 +28,18 @@ kubectl -n ${namespace} create secret generic mgr-${instance_name}-${username}-p
 
 2. 创建用户管理CR
 ```bash
-kubectl apply -n $namespace -f - <<EOF
+kubectl apply -n ${namespace} -f - <<EOF
 apiVersion: middleware.alauda.io/v1
 kind: MysqlUser
 metadata:
   labels:
     mgr/cluster: mgr
     mysql/arch: mgr
-  name: mgr-dev
-  namespace: tsl-x
+  name: ${name}
+  namespace: ${namespace}
 spec:
   host: '%'
-  mysql: mgr
+  mysql: ${instance_name}
   privileges:
     - grants:
         - SELECT
@@ -61,13 +61,19 @@ spec:
         - EVENT
         - TRIGGER
       targets:
-        - dev
-  secretName: mgr-dev
-  user: dev
+        - ${database}.*
+  secretName: ${secret_name}
+  user: ${username}
 EOF
 ```
+- `${instance_name}` 为期望创建用户的MySQL-MGR实例名称
+- `${namespace}` 为实例所属的命名空间
+- `${username}` 为期望创建的用户名
+- `${secret_name}` 为携带密码的 secret 名称
+- `${database}` 为期望用户拥有权限的数据库名称
+
 2. 使用对应用户登录 MySQL
-3. 检查用户权限, 示例为 dev 用户:
+3. 检查用户权限，示例为 dev 用户:
 ```bash
 SHOW GRANTS;
 ```
@@ -90,7 +96,7 @@ SHOW GRANTS;
 - 密码：符合复杂度要求
 - 权限：库级权限
 2. 使用对应用户登录 MySQL
-3. 检查用户权限, 示例为 dev 用户:
+3. 检查用户权限，示例为 dev 用户:
 ```bash
 SHOW GRANTS;
 ```
