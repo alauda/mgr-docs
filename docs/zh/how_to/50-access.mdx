@@ -3,34 +3,36 @@ weight: 50
 sourceSHA: 6de5193b1f91f44e7880f1e9e76832add1847ded06798757e5f9a9c9446aa667
 ---
 
-# How To Access MySQL-MGR Instances
+# 如何访问MySQL-MGR实例
 
-There are multiple ways to connect to a MySQL-MGR instance when accessing it from a business application. This section describes how to choose a connection address to access the MySQL-MGR instance and provides examples for demonstration.
+业务应用访问 MySQL-MGR 实例时有多种连接方式，本节描述了如何选择连接地址，通过连接地址访问到 MySQL-MGR 实例，并举例演示。
 
-## Applicable scenarios
+## 适用场景
 
-| Access Method | Applicable Scenarios |
+| 访问方式 | 适用场景 |
 | --- | --- |
-| **Access within the Cluster** | In single-master or multi-master mode, applications within the cluster access the MGR instance through the port exposed by the SVC. |
-| **Access from outside the Cluster** | In single-master or multi-master mode, applications outside the cluster access the MGR instance through the NodePort port. |
+| **集群内访问** | 单主或多主模式下，集群内应用通过 SVC 暴露的端口访问 MGR 实例。 |
+| **集群外访问** | 单主或多主模式下，集群外应用通过 NodePort 的端口访问 MGR 实例。|
 
-## Common client programs
+## 常见客户端程序
 
-The example demonstrates programs using JDBC and GORM clients. Please refer to the corresponding framework documentation for other clients.
+举例展示了 JDBC 和 GORM 客户端的程序。其他客户端请自行参考相应框架说明。
 
-When using the code, please modify the relevant variables to your actual values. The variable descriptions are as follows:
+使用代码时，请将相关变量修改为您的真实值。变量说明如下：
 
-| Variable | Description |
+| 变量 | 说明 |
 | --- | --- |
-| **host** | The IP or SVC name of the host for the corresponding access method |
-| **port** | The port number for the corresponding access method |
-| **user** | The username for MySQL-MGR |
-| **password** | The actual password for the MySQL-MGR user |
-| **database** | The name of the database to be accessed |
+| **host** | 对应访问方式下的主机 IP 或 SVC 名称 |
+| **port** | 对应访问方式下的端口号 |
+| **user** | MySQL-MGR 用户名 |
+| **password** | MySQL-MGR 用户的真实密码 |
+| **database** | 需要访问的库名称 |
 
+<Tabs>
+<Tab label="JDBC">
 ### JDBC
 
-1. Cluster Internal Access
+1. 集群内访问
 
     ```
     import java.sql.*;
@@ -49,7 +51,7 @@ When using the code, please modify the relevant variables to your actual values.
     }
     ```
 
-2. External Access to the Cluster - via NodePort
+2. 集群外访问 - 通过 NodePort
 
     ```
     import java.sql.*;
@@ -67,10 +69,11 @@ When using the code, please modify the relevant variables to your actual values.
         }
     }
     ```
-
+</Tab>
+<Tab label="GORM">
 ### GORM
 
-1. Cluster Internal Access
+1. 集群内访问
 
     ```
     import (
@@ -96,8 +99,8 @@ When using the code, please modify the relevant variables to your actual values.
         }
     }
     ```
-
-2. External Access to the Cluster - via NodePort
+    
+2. 集群外访问 - 通过 NodePort
 
     ```
     package main
@@ -142,5 +145,5 @@ When using the code, please modify the relevant variables to your actual values.
         }
     }
     ```
-
-
+</Tab>
+</Tabs>
