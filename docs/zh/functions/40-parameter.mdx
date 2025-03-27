@@ -68,3 +68,780 @@ spec:
 
 </Tab>
 </Tabs>
+
+## 参数支持说明
+| 参数名 | 默认值 | 应用策略 | 描述  |
+| --- | --- | --- | --- |
+| ssl_session_cache_mode | ON  | RestartApply | Is TLS session cache enabled or not |
+| ssl_session_cache_timeout | 300 | RestartApply | The timeout to expire sessions in the TLS session cache |
+| performance_schema | ON  | RestartApply | Enable the performance schema. |
+| performance_schema_instrument |     | RestartApply | Default startup value for a performance schema instrument. |
+| performance_schema_consumer_events_stages_current | OFF | RestartApply | Default startup value for the events_stages_current consumer. |
+| performance_schema_consumer_events_stages_history | OFF | RestartApply | Default startup value for the events_stages_history consumer. |
+| performance_schema_consumer_events_stages_history_long | OFF | RestartApply | Default startup value for the events_stages_history_long consumer. |
+| performance_schema_consumer_events_statements_cpu | OFF | RestartApply | Default startup value for the events_statements_cpu consumer. |
+| performance_schema_consumer_events_statements_current | ON  | RestartApply | Default startup value for the events_statements_current consumer. |
+| performance_schema_consumer_events_statements_history | ON  | RestartApply | Default startup value for the events_statements_history consumer. |
+| performance_schema_consumer_events_statements_history_long | OFF | RestartApply | Default startup value for the events_statements_history_long consumer. |
+| performance_schema_consumer_events_transactions_current | ON  | RestartApply | Default startup value for the events_transactions_current consumer. |
+| performance_schema_consumer_events_transactions_history | ON  | RestartApply | Default startup value for the events_transactions_history consumer. |
+| performance_schema_consumer_events_transactions_history_long | OFF | RestartApply | Default startup value for the events_transactions_history_long consumer. |
+| performance_schema_consumer_events_waits_current | OFF | RestartApply | Default startup value for the events_waits_current consumer. |
+| performance_schema_consumer_events_waits_history | OFF | RestartApply | Default startup value for the events_waits_history consumer. |
+| performance_schema_consumer_events_waits_history_long | OFF | RestartApply | Default startup value for the events_waits_history_long consumer. |
+| performance_schema_consumer_global_instrumentation | ON  | RestartApply | Default startup value for the global_instrumentation consumer. |
+| performance_schema_consumer_thread_instrumentation | ON  | RestartApply | Default startup value for the thread_instrumentation consumer. |
+| performance_schema_consumer_statements_digest | ON  | RestartApply | Default startup value for the statements_digest consumer. |
+| performance_schema_events_waits_history_long_size | -1 | RestartApply | Number of rows in EVENTS_WAITS_HISTORY_LONG. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_events_waits_history_size | -1 | RestartApply | Number of rows per thread in EVENTS_WAITS_HISTORY. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_max_cond_classes | 150 | RestartApply | Maximum number of condition instruments. |
+| performance_schema_max_cond_instances | -1 | RestartApply | Maximum number of instrumented condition objects. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_program_instances | -1 | RestartApply | Maximum number of instrumented programs. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_prepared_statements_instances | -1 | RestartApply | Maximum number of instrumented prepared statements. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_file_classes | 80  | RestartApply | Maximum number of file instruments. |
+| performance_schema_max_file_handles | 32768 | RestartApply | Maximum number of opened instrumented files. |
+| performance_schema_max_file_instances | -1 | RestartApply | Maximum number of instrumented files. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_socket_instances | -1 | RestartApply | Maximum number of opened instrumented sockets. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_socket_classes | 10  | RestartApply | Maximum number of socket instruments. |
+| performance_schema_max_mutex_classes | 350 | RestartApply | Maximum number of mutex instruments. |
+| performance_schema_max_mutex_instances | -1 | RestartApply | Maximum number of instrumented MUTEX objects. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_rwlock_classes | 60  | RestartApply | Maximum number of rwlock instruments. |
+| performance_schema_max_rwlock_instances | -1 | RestartApply | Maximum number of instrumented RWLOCK objects. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_table_handles | -1 | RestartApply | Maximum number of opened instrumented tables. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_table_instances | -1 | RestartApply | Maximum number of instrumented tables. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_table_lock_stat | -1 | RestartApply | Maximum number of lock statistics for instrumented tables. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_index_stat | -1 | RestartApply | Maximum number of index statistics for instrumented tables. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_thread_classes | 100 | RestartApply | Maximum number of thread instruments. |
+| performance_schema_max_thread_instances | -1 | RestartApply | Maximum number of instrumented threads. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_setup_actors_size | -1 | RestartApply | Maximum number of rows in SETUP_ACTORS. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_setup_objects_size | -1 | RestartApply | Maximum number of rows in SETUP_OBJECTS. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_accounts_size | -1 | RestartApply | Maximum number of instrumented user@host accounts. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_hosts_size | -1 | RestartApply | Maximum number of instrumented hosts. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_users_size | -1 | RestartApply | Maximum number of instrumented users. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_stage_classes | 175 | RestartApply | Maximum number of stage instruments. |
+| performance_schema_events_stages_history_long_size | -1 | RestartApply | Number of rows in EVENTS_STAGES_HISTORY_LONG. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_events_stages_history_size | -1 | RestartApply | Number of rows per thread in EVENTS_STAGES_HISTORY. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_max_statement_classes | 219 | RestartApply | Maximum number of statement instruments. |
+| performance_schema_events_statements_history_long_size | -1 | RestartApply | Number of rows in EVENTS_STATEMENTS_HISTORY_LONG. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_events_statements_history_size | -1 | RestartApply | Number of rows per thread in EVENTS_STATEMENTS_HISTORY. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_max_statement_stack | 10  | RestartApply | Number of rows per thread in EVENTS_STATEMENTS_CURRENT. |
+| performance_schema_max_memory_classes | 450 | RestartApply | Maximum number of memory pool instruments. |
+| performance_schema_digests_size | -1 | RestartApply | Size of the statement digest. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_events_transactions_history_long_size | -1 | RestartApply | Number of rows in EVENTS_TRANSACTIONS_HISTORY_LONG. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_events_transactions_history_size | -1 | RestartApply | Number of rows per thread in EVENTS_TRANSACTIONS_HISTORY. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_max_digest_length | 1024 | RestartApply | Maximum length considered for digest text, when stored in performance_schema tables. |
+| performance_schema_max_digest_sample_age | 60  | RestartApply | The time in seconds after which a previous query sample is considered old. When the value is 0, queries are sampled once. When the value is greater than zero, queries are re sampled if the last sample is more than performance_schema_max_digest_sample_age seconds old. |
+| performance_schema_session_connect_attrs_size | -1 | RestartApply | Size of session attribute string buffer per thread. Use 0 to disable, -1 for automated sizing. |
+| performance_schema_max_metadata_locks | -1 | RestartApply | Maximum number of metadata locks. Use 0 to disable, -1 for automated scaling. |
+| performance_schema_max_sql_text_length | 1024 | RestartApply | Maximum length of displayed sql text. |
+| performance_schema_error_size | 5242 | RestartApply | Number of server errors instrumented. |
+| partial_revokes | OFF | RestartApply | Access of database objects can be restricted, even if user has global privileges granted. |
+| log_error |     | RestartApply | Error log file |
+| log_error_services |     | RestartApply | Services that should be called when an error event is received |
+| log_timestamps | UTC | RestartApply | UTC to timestamp log files in zulu time, for more concise timestamps and easier correlation of logs from servers from multiple time zones, or SYSTEM to use the system's local time. This affects only log files, not log tables, as the timestamp columns of the latter can be converted at will. |
+| max_connections | 151 | RestartApply | The number of simultaneous clients allowed |
+| max_prepared_stmt_count | 16382 | RestartApply | Maximum number of prepared statements in the server |
+| open_files_limit | 0   | RestartApply | If this is not 0, then mysqld will use this value to reserve file descriptors to use with setrlimit(). If this value is 0 then mysqld will reserve max_connections\*5 or max_connections + table_open_cache\*2 (whichever is larger) number of file descriptors |
+| table_definition_cache | 400 | RestartApply | The number of cached table definitions |
+| table_open_cache | 4000 | RestartApply | The number of cached open tables (total for all table cache instances) |
+| table_open_cache_instances | 16  | RestartApply | The number of table cache instances |
+| persist_sensitive_variables_in_plaintext | ON  | RestartApply | If set to FALSE, server will refuse to persist SENSITIVE variables in plaintext and refuse to start if encrypted part of persited file cannot be processed. |
+| daemonize | OFF | RestartApply | Run mysqld as sysv daemon |
+| skip_grant_tables | OFF | RestartApply | Start without grant tables. This gives all users FULL ACCESS to all tables. |
+| help | OFF | RestartApply | Display this help and exit. |
+| verbose | OFF | RestartApply | Used with --help option for detailed help. |
+| version |     | RestartApply | Output version information and exit. |
+| initialize | OFF | RestartApply | Create the default database and exit. Create a super user with a random expired password and store it into the log. |
+| initialize_insecure | OFF | RestartApply | Create the default database and exit. Create a super user with empty password. |
+| keyring_migration_source |     | RestartApply | Keyring plugin from where the keys needs to be migrated to. This option must be specified along with --keyring-migration-destination. |
+| keyring_migration_destination |     | RestartApply | Keyring plugin or component to which the keys are migrated to. |
+| keyring_migration_user |     | RestartApply | User to login to server. |
+| keyring_migration_host |     | RestartApply | Connect to host. |
+| keyring_migration_password |     | RestartApply | Password to use when connecting to server during keyring migration. If password value is not specified then it will be asked from the tty. |
+| keyring_migration_socket |     | RestartApply | The socket file to use for connection. |
+| keyring_migration_port | 0   | RestartApply | Port number to use for connection. |
+| keyring_migration_to_component | OFF | RestartApply | Migrate from keyring plugin to keyring component. |
+| no_dd_upgrade | OFF | RestartApply | Abort restart if automatic upgrade or downgrade of the data dictionary is needed. Deprecated option. Use --upgrade=NONE instead. |
+| validate_config | OFF | RestartApply | Validate the server configuration specified by the user. |
+| abort_slave_event_count | 0   | RestartApply | Option used by mysql-test for debugging and testing of replication.This option is deprecated and will be removed in a future version.|
+| allow_suspicious_udfs | OFF | RestartApply | Allows use of UDFs consisting of only one symbol xxx() without corresponding xxx_init() or xxx_deinit(). That also means that one can load any function from any library, for example exit() from [libc.so](http://libc.so) |
+| ansi |     | RestartApply | Use ANSI SQL syntax instead of MySQL syntax. This mode will also set transaction isolation level 'serializable'. |
+| autocommit | ON  | RestartApply | Set default value for autocommit (0 or 1) |
+| binlog_do_db |     | RestartApply | Include only updates to the specified database when writing the binary log. |
+| binlog_ignore_db |     | RestartApply | Exclude updates to the specified database when writing the binary log. |
+| character_set_client_handshake | ON  | RestartApply | Don't ignore client side character set value sent during handshake. |
+| character_set_filesystem |     | RestartApply | Set the filesystem character set. |
+| character_set_server |     | RestartApply | Set the default character set. |
+| chroot |     | RestartApply | Chroot mysqld daemon during startup. |
+| collation_server |     | RestartApply | Set the default collation. |
+| console | OFF | RestartApply | Write error output on screen; don't remove the console window on windows. |
+| core_file |     | RestartApply | Write core on errors. |
+| default_storage_engine |     | RestartApply | The default storage engine for new tables |
+| default_tmp_storage_engine |     | RestartApply | The default storage engine for new explicit temporary tables |
+| default_time_zone |     | RestartApply | Set the default time zone. |
+| disconnect_slave_event_count | 0   | RestartApply | Option used by mysql-test for debugging and testing of replication.This option is deprecated and will be removed in a future version. |
+| exit_info | 0   | RestartApply | Used for debugging. Use at your own risk. |
+| external_locking | OFF | RestartApply | Use system (external) locking (disabled by default).With this option enabled you can run myisamchk to test (not repair) tables while the MySQL server is running. Disable with --skip-external-locking. |
+| gdb | OFF | RestartApply | Set up signals usable for debugging. |
+| super_large_pages | OFF | RestartApply | Enable support for super large pages. |
+| language |     | RestartApply | Client error messages in given language. May be given as a full path. Deprecated. Use --lc-messages-dir instead. |
+| lc_messages |     | RestartApply | Set the language used for the error messages. |
+| lc_time_names |     | RestartApply | Set the language used for the month names and the days of the week. |
+| log_bin |     | RestartApply | Configures the name prefix to use for binary log files. If the --log-bin option is not supplied, the name prefix defaults to binlog". If the --log-bin option is supplied without argument |
+| log_bin_index |     | RestartApply | File that holds the names for binary log files. |
+| relay_log_index |     | RestartApply | File that holds the names for relay log files. |
+| log_isam |     | RestartApply | Log all MyISAM changes to file. |
+| log_short_format | OFF | RestartApply | Don't log extra information to update and slow-query logs. |
+| log_tc |     | RestartApply | Path to transaction coordinator log (used for transactions that affect more than one storage engine, when binary log is disabled). |
+| log_tc_size | 24576 | RestartApply | Size of transaction coordinator log. |
+| master_info_file |     | RestartApply | The path and filename where the replication receiver thread stores connection configuration and positions, in case --master-info-repository=FILE. This option is deprecated and will be removed in a future version. |
+| master_retry_count | 86400 | RestartApply | The number of times this replica will attempt to connect to a source before giving up. This option is deprecated and will be removed in a future version. Use 'CHANGE REPLICATION SOURCE TO SOURCE_RETRY_COUNT = `num`' instead. |
+| max_binlog_dump_events | 0   | RestartApply | Option used by mysql-test for debugging and testing of replication. |
+| memlock | OFF | RestartApply | Lock mysqld in memory. |
+| old_style_user_limits | OFF | RestartApply | Enable old-style user limits (before 5.0.3, user resources were counted for each user + host vs. per account). This option is deprecated and will be removed in a future version. |
+| port_open_timeout | 0   | RestartApply | Maximum time in seconds to wait for the port to become free. (Default: No wait). |
+| replicate_do_db |     | RestartApply | Make replication applier threads apply only changes to the specified database. To specify more than one database, use the directive multiple times, once for each database. Note that this will only work if you do not use cross-database queries such as UPDATE some_db.some_table SET foo='bar' while having selected a different or no database. If you need cross database updates to work, make sure you have 3.23.28 or later, and use replicate-wild-do-table=db_name.%. |
+| replicate_do_table |     | RestartApply | Make replication applier threads apply only changes to the specified table. To specify more than one table, use the directive multiple times, once for each table. This will work for cross-database updates, in contrast to replicate-do-db. |
+| replicate_ignore_db |     | RestartApply | Make replication applier threads skip changes to the specified database. To specify more than one database to ignore, use this option multiple times, once for each database. If there are statements that update multiple databases, this will work correctly only when the source server uses binlog_format=ROW. |
+| replicate_ignore_table |     | RestartApply | Make replication applier threads skip changes to the specified table.To ignore more than one table, use the option multiple times, once for each table. If there are statements that update multiple tables, this will work correctly only when the source server uses binlog_format=ROW. |
+| replicate_rewrite_db |     | RestartApply | Make replication applier threads rename a database, so changes in one database on the source will be applied in another database on this replica. Example: replicate-rewrite-db=source_db_name->replica_db_name. |
+| replicate_same_server_id | OFF | RestartApply | In replication, if set to 1, do not skip events having our server id. Default value is 0 (to break infinite loops in circular replication). Can't be set to 1 if --log-replica-updates is used. |
+| replicate_wild_do_table |     | RestartApply | Make replication applier threads apply changes only in tables that match the specified wildcard pattern. To specify more than one pattern, use the option multiple times, once for each pattern. If there are statements that update both tables that are included and excluded by the pattern, this will only work correctly when the source server uses binlog_format=ROW. Example: replicate-wild-do-table=foo%.bar% will replicate only updates to tables in all databases that start with foo and whose table names start with bar. |
+| replicate_wild_ignore_table |     | RestartApply | Make replication applier threads skip changes to tables that match the specified wildcard pattern. To specify more than one pattern, use the option multiple times, once for each pattern. If there are statements that update both tables that are included and tables that are excluded by the pattern, this will only work correctly when the source server uses binlog_format=ROW. Example: when using replicate-wild-ignore-table=foo%.bar%, the applier thread will not apply updates to tables in databases that start with foo and whose table names start with bar. |
+| safe_user_create | OFF | RestartApply | Don't allow new user creation by the user who has no write privileges to the mysql.user table. |
+| show_replica_auth_info | OFF | RestartApply | Include user and password in SHOW REPLICAS statements. |
+| show_slave_auth_info | OFF | RestartApply | This option is deprecated and will be removed in a future version. Use show-replica-auth-info instead. |
+| skip_host_cache |     | RestartApply | Don't cache host names. |
+| skip_new |     | RestartApply | Don't use new, possibly wrong routines. |
+| skip_stack_trace |     | RestartApply | Don't print a stack trace on failure. |
+| sporadic_binlog_dump_fail | OFF | RestartApply | Option used by mysql-test for debugging and testing of replication. |
+| ssl | ON  | RestartApply | Enable SSL for connection (automatically enabled with other flags). |
+| admin_ssl | ON  | RestartApply | Enable SSL for admin interface (automatically enabled with other flags). |
+| symbolic_links | OFF | RestartApply | Enable symbolic link support (deprecated and will beremoved in a future release). |
+| sysdate_is_now | OFF | RestartApply | Non-default option to alias SYSDATE() to NOW() to make it safe-replicable. Since 5.0, SYSDATE() returns a \`dynamic' value different for different invocations, even within the same statement. |
+| tc_heuristic_recover | OFF | RestartApply | Decision to use in heuristic recover process. Possible values are OFF, COMMIT or ROLLBACK. |
+| debug_sync_timeout | 0   | RestartApply | Enable the debug sync facility and optionally specify a default wait timeout in seconds. A zero value keeps the facility disabled. |
+| transaction_isolation | REPEATABLE-READ | RestartApply | Default transaction isolation level. |
+| transaction_read_only | OFF | RestartApply | Default transaction access mode. True if transactions are read-only. |
+| user |     | RestartApply | Run mysqld daemon as user. |
+| early_plugin_load |     | RestartApply | Optional semicolon-separated list of plugins to load before storage engine initialization, where each plugin is identified as name=library, where name is the plugin name and library is the plugin library in plugin_dir. |
+| plugin_load |     | RestartApply | Optional semicolon-separated list of plugins to load, where each plugin is identified as name=library, where name is the plugin name and library is the plugin library in plugin_dir. |
+| plugin_load_add |     | RestartApply | Optional semicolon-separated list of plugins to load, where each plugin is identified as name=library, where name is the plugin name and library is the plugin library in plugin_dir. This option adds to the list specified by --plugin-load in an incremental way. Multiple --plugin-load-add are supported. |
+| innodb |     | RestartApply | Deprecated option. Provided for backward compatibility only. The option has no effect on the server behaviour. InnoDB is always enabled. The option will be removed in a future release. |
+| upgrade | AUTO | RestartApply | Set server upgrade mode. NONE to abort server if automatic upgrade of the server is needed; MINIMAL to start the server, but skip upgrade steps that are not absolutely necessary; AUTO (default) to upgrade the server if required; FORCE to force upgrade server. |
+| ssl_ca |     | RestartApply | CA file in PEM format (check OpenSSL docs, implies --ssl) |
+| ssl_capath |     | RestartApply | CA directory (check OpenSSL docs, implies --ssl) |
+| tls_version |     | RestartApply | TLS version, permitted values are TLSv1.2, TLSv1.3 |
+| ssl_cert |     | RestartApply | X509 cert in PEM format (implies --ssl) |
+| ssl_cipher |     | RestartApply | SSL cipher to use (implies --ssl) |
+| tls_ciphersuites |     | RestartApply | TLS v1.3 ciphersuite to use (implies --ssl) |
+| ssl_key |     | RestartApply | X509 key in PEM format (implies --ssl) |
+| ssl_crl |     | RestartApply | CRL file in PEM format (check OpenSSL docs, implies --ssl) |
+| ssl_crlpath |     | RestartApply | CRL directory (check OpenSSL docs, implies --ssl) |
+| admin_ssl_ca |     | RestartApply | CA file in PEM format (check OpenSSL docs, implies --ssl) for --admin-port |
+| admin_ssl_capath |     | RestartApply | CA directory (check OpenSSL docs, implies --ssl) for --admin-port |
+| admin_tls_version |     | RestartApply | TLS version for --admin-port, permitted values are TLSv1.2, TLSv1.3 |
+| admin_ssl_cert |     | RestartApply | X509 cert in PEM format (implies --ssl) for --admin-port |
+| admin_ssl_cipher |     | RestartApply | SSL cipher to use (implies --ssl) for --admin-port |
+| admin_tls_ciphersuites |     | RestartApply | TLS v1.3 ciphersuite to use (implies --ssl) for --admin-port |
+| admin_ssl_key |     | RestartApply | X509 key in PEM format (implies --ssl) for --admin-port |
+| admin_ssl_crl |     | RestartApply | CRL file in PEM format (check OpenSSL docs, implies --ssl) for --admin-port |
+| admin_ssl_crlpath |     | RestartApply | CRL directory (check OpenSSL docs, implies --ssl) for --admin-port |
+| performance_schema_show_processlist | OFF | RestartApply | Default startup value to enable SHOW PROCESSLIST in the performance schema. |
+| auto_increment_increment | 1   | RestartApply | Auto-increment columns are incremented by this |
+| auto_increment_offset | 1   | RestartApply | Offset added to Auto-increment columns. Used when auto-increment-increment != 1 |
+| windowing_use_high_precision | ON  | RestartApply | For SQL window functions, determines whether to enable inversion optimization for moving window frames also for floating values. |
+| cte_max_recursion_depth | 1000 | RestartApply | Abort a recursive common table expression if it does more than this number of iterations. |
+| automatic_sp_privileges | ON  | RestartApply | Creating and dropping stored procedures alters ACLs |
+| back_log | 0   | RestartApply | The number of outstanding connection requests MySQL can have. This comes into play when the main MySQL thread gets very many connection requests in a very short time |
+| basedir |     | Unsupported | Path to installation directory. All paths are usually resolved relative to this |
+| default_authentication_plugin |     | RestartApply | The default authentication plugin used by the server to hash the password. |
+| default_password_lifetime | 0   | RestartApply | The number of days after which the password will expire. |
+| bind_address |     | RestartApply | IP address(es) to bind to. Syntax: address\[,address\]..., where address can be an IPv4 address, IPv6 address, host name or one of the wildcard values \*, ::, 0.0.0.0. In case more than one address is specified in a comma-separated list, wildcard values are not allowed. Every address can have optional network namespace separated by the delimiter / from the address value. E.g., the following value 192.168.1.1/red,172.16.1.1/green,193.168.1.1 specifies three IP addresses to listen for incoming TCP connections two of that have to be placed in corresponding namespaces: the address 192.168.1.1 must be placed into the namespace red and the address 172.16.1.1 must be placed into the namespace green. Using of network namespace requires its support from underlying Operating System. Attempt to specify a network namespace for a platform that doesn't support it results in error during socket creation. |
+| admin_address |     | RestartApply | IP address to bind to for service connection. Address can be an IPv4 address, IPv6 address, or host name. Wildcard values \*, ::, 0.0.0.0 are not allowed. Address value can have following optional network namespace separated by the delimiter / from the address value. E.g., the following value 192.168.1.1/red specifies IP addresses to listen for incoming TCP connections that have to be placed into the namespace 'red'. Using of network namespace requires its support from underlying Operating System. Attempt to specify a network namespace for a platform that doesn't support it results in error during socket creation. |
+| admin_port | 33062 | RestartApply | Port number to use for service connection, built-in default (33062) |
+| create_admin_listener_thread | OFF | RestartApply | Use a dedicated thread for listening incoming connections on admin interface |
+| password_require_current | OFF | RestartApply | Current password is needed to be specified in order to change it |
+| binlog_cache_size | 32768 | RestartApply | The size of the transactional cache for updates to transactional engines for the binary log. If you often use transactions containing many statements, you can increase this to get more performance |
+| binlog_stmt_cache_size | 32768 | RestartApply | The size of the statement cache for updates to non-transactional engines for the binary log. If you often use statements updating a great number of rows, you can increase this to get more performance |
+| binlog_max_flush_queue_time | 0   | RestartApply | The maximum time that the binary log group commit will keep reading transactions before it flush the transactions to the binary log (and optionally sync, depending on the value of sync_binlog). |
+| binlog_group_commit_sync_delay | 0   | RestartApply | The number of microseconds the server waits for the binary log group commit sync queue to fill before continuing. Default: 0. Min: 0. Max: 1000000. |
+| binlog_group_commit_sync_no_delay_count | 0   | RestartApply | If there are this many transactions in the commit sync queue and the server is waiting for more transactions to be enqueued (as set using --binlog-group-commit-sync-delay), the commit procedure resumes. |
+| binlog_format | ROW | RestartApply | The format used when writing the binary log. ROW writes each changed row in a binary format. STATEMENT writes SQL statements. MIXED writes SQL statements for most statements, and row format for statements that cannot be replayed in a deterministic manner using SQL. If NDBCLUSTER is enabled and binlog-format is MIXED, the format switches to row-based and back implicitly for each query accessing an NDBCLUSTER table. |
+| binlog_row_image | FULL | RestartApply | Controls whether rows should be logged in 'FULL', 'NOBLOB' or 'MINIMAL' formats. 'FULL', means that all columns in the before and after image are logged. 'NOBLOB', means that mysqld avoids logging blob columns whenever possible (e.g. blob column was not changed or is not part of primary key). 'MINIMAL', means that a PK equivalent (PK columns or full row if there is no PK in the table) is logged in the before image, and only changed columns are logged in the after image. (Default: FULL). |
+| binlog_row_metadata | MINIMAL | RestartApply | Controls how much type information is written to the binary log when using ROW format. FULL causes all metadata to be logged. MINIMAL means that only metadata actually needed by replicas is logged. |
+| binlog_transaction_compression | OFF | RestartApply | Whether to compress transactions or not. Transactions are compressed using the ZSTD compression algorythm. |
+| binlog_transaction_compression_level_zstd | 3   | RestartApply | Specifies the transaction compression level for ZSTD transaction compression in the binary log. |
+| session_track_gtids | OFF | RestartApply | Controls the amount of global transaction ids to be included in the response packet sent by the server.(Default: OFF). |
+| binlog_direct_non_transactional_updates | OFF | RestartApply | Causes updates to non-transactional engines using statement format to be written directly to binary log, after executing them and before committing the transaction. Before using this option make sure that there are no dependencies between transactional and non-transactional tables such as in the statement INSERT INTO t_myisam SELECT \* FROM t_innodb; otherwise, replicas may diverge. |
+| explicit_defaults_for_timestamp | ON  | RestartApply | This option causes CREATE TABLE to create all TIMESTAMP columns as NULL with DEFAULT NULL attribute, Without this option, TIMESTAMP columns are NOT NULL and have implicit DEFAULT clauses. The old behavior is deprecated. The variable can only be set by users having the SUPER privilege. |
+| master_info_repository | TABLE | RestartApply | The repository format for the replication connection configuration. |
+| relay_log_info_repository | TABLE | RestartApply | Defines the type of the repository for the relay log information and associated workers. |
+| binlog_rows_query_log_events | OFF | RestartApply | Allow writing of Rows_query_log events into binary log. |
+| binlog_order_commits | ON  | RestartApply | Issue internal commit calls in the same order as transactions are written to the binary log. Default is to order commits. |
+| bulk_insert_buffer_size | 8388608 | RestartApply | Size of tree cache used in bulk insert optimisation. Note that this is a limit per thread! |
+| character_sets_dir |     | RestartApply | Directory where character sets are |
+| select_into_buffer_size | 131072 | RestartApply | Buffer size for SELECT INTO OUTFILE/DUMPFILE. |
+| select_into_disk_sync | OFF | RestartApply | Synchronize flushed buffer with disk for SELECT INTO OUTFILE/DUMPFILE. |
+| select_into_disk_sync_delay | 0   | RestartApply | The delay in milliseconds after each buffer sync for SELECT INTO OUTFILE/DUMPFILE. Requires select_into_sync_disk = ON. |
+| completion_type | NO_CHAIN | RestartApply | The transaction completion type, one of NO_CHAIN, CHAIN, RELEASE |
+| concurrent_insert | AUTO | RestartApply | Use concurrent insert with MyISAM. Possible values are NEVER, AUTO, ALWAYS |
+| connect_timeout | 10  | RestartApply | The number of seconds the mysqld server is waiting for a connect packet before responding with 'Bad handshake' |
+| information_schema_stats_expiry | 86400 | RestartApply | The number of seconds after which mysqld server will fetch data from storage engine and replace the data in cache. |
+| datadir |     | Unsupported | Path to the database root directory |
+| debug |     | RestartApply | Debug log |
+| delay_key_write | ON  | RestartApply | Type of DELAY_KEY_WRITE |
+| delayed_insert_limit | 100 | RestartApply | After inserting delayed_insert_limit rows, the INSERT DELAYED handler will check if there are any SELECT statements pending. If so, it allows these to execute before continuing. This variable is deprecated along with INSERT DELAYED. |
+| delayed_insert_timeout | 300 | RestartApply | How long a INSERT DELAYED thread should wait for INSERT statements before terminating. This variable is deprecated along with INSERT DELAYED. |
+| delayed_queue_size | 1000 | RestartApply | What size queue (in rows) should be allocated for handling INSERT DELAYED. If the queue becomes full, any client that does INSERT DELAYED will wait until there is room in the queue again. This variable is deprecated along with INSERT DELAYED. |
+| event_scheduler | ON  | RestartApply | Enable the event scheduler. Possible values are ON, OFF, and DISABLED (keep the event scheduler completely deactivated, it cannot be activated run-time) |
+| expire_logs_days | 0   | RestartApply | If non-zero, binary logs will be purged after expire_logs_days days; If this option alone is set on the command line or in a configuration file, it overrides the default value for binlog-expire-logs-seconds. If both options are set to nonzero values, binlog-expire-logs-seconds takes priority. Possible purges happen at startup and at binary log rotation. |
+| binlog_expire_logs_seconds | 2592000 | RestartApply | If non-zero, binary logs will be purged after binlog_expire_logs_seconds seconds; If both this option and expire_logs_days are set to non-zerovalues, this option takes priority. Purges happen at startup and at binary log rotation. |
+| binlog_expire_logs_auto_purge | ON  | RestartApply | Controls whether the server shall automatically purge binary log files or not. If this variable is set to FALSE then the server will not purge binary log files automatically. |
+| flush | OFF | RestartApply | Flush MyISAM tables to disk between SQL commands |
+| flush_time | 0   | RestartApply | A dedicated thread is created to flush all tables at the given interval |
+| ft_boolean_syntax |     | RestartApply | List of operators for MATCH ... AGAINST ( ... IN BOOLEAN MODE) |
+| ft_max_word_len | 84  | RestartApply | The maximum length of the word to be included in a FULLTEXT index. Note: FULLTEXT indexes must be rebuilt after changing this variable |
+| ft_min_word_len | 4   | RestartApply | The minimum length of the word to be included in a FULLTEXT index. Note: FULLTEXT indexes must be rebuilt after changing this variable |
+| ft_query_expansion_limit | 20  | RestartApply | Number of best matches to use for query expansion |
+| ft_stopword_file |     | RestartApply | Use stopwords from this file instead of built-in list |
+| init_connect |     | RestartApply | Command(s) that are executed for each new connection |
+| init_file |     | RestartApply | Read SQL commands from this file at startup |
+| init_replica |     | RestartApply | Command(s) that are executed by the replication applier thread each time the applier threads start. |
+| init_slave |     | RestartApply | This option is deprecated. Use init_replica instead. |
+| interactive_timeout | 28800 | RestartApply | The number of seconds the server waits for activity on an interactive connection before closing it |
+| join_buffer_size | 262144 | RestartApply | The size of the buffer that is used for full joins |
+| key_buffer_size | 8388608 | RestartApply | The size of the buffer used for index blocks for MyISAM tables. Increase this to get better index handling (for all reads and multiple writes) to as much as you can afford |
+| key_cache_block_size | 1024 | RestartApply | The default size of key cache blocks |
+| key_cache_division_limit | 100 | RestartApply | The minimum percentage of warm blocks in key cache |
+| key_cache_age_threshold | 300 | RestartApply | This characterizes the number of hits a hot block has to be untouched until it is considered aged enough to be downgraded to a warm block. This specifies the percentage ratio of that number of hits to the total number of blocks in key cache |
+| large_pages | OFF | RestartApply | Enable support for large pages |
+| lc_messages_dir |     | RestartApply | Directory where error messages are |
+| local_infile | OFF | RestartApply | Enable LOAD DATA LOCAL INFILE |
+| lock_wait_timeout | 31536000 | RestartApply | Timeout in seconds to wait for a lock before returning an error. |
+| transaction_write_set_extraction | XXHASH64 | RestartApply | This option is used to let the server know when to extract the write set which will be used for various purposes.|
+| rpl_stop_replica_timeout | 31536000 | RestartApply | Timeout in seconds to wait for replication threads to stop, before STOP REPLICA returns a warning. |
+| rpl_stop_slave_timeout | 31536000 | RestartApply | This option is deprecated. Use rpl_stop_replica_timeout instead. |
+| binlog_error_action | ABORT_SERVER | RestartApply | When statements cannot be written to the binary log due to a fatal error, this option determines whether the server ignores the error and closes the binary log, or aborts. |
+| log_bin_trust_function_creators | OFF | RestartApply | If set to FALSE (the default), then when --log-bin is used, creation of a stored function (or trigger) is allowed only to users having the SUPER privilege and only if this stored function (trigger) may not break binary logging. Note that if ALL connections to this server ALWAYS use row-based binary logging, the security issues do not exist and the binary logging cannot break, so you can safely set this to TRUE |
+| check_proxy_users | OFF | RestartApply | If set to FALSE (the default), then proxy user identity will not be mapped for authentication plugins which support mapping from grant tables.When set to TRUE, users associated with authentication plugins which signal proxy user mapping should be done according to GRANT PROXY privilege definition. |
+| mysql_native_password_proxy_users | OFF | RestartApply | If set to FALSE (the default), then the mysql_native_password plugin will not signal for authenticated users to be checked for mapping to proxy users.When set to TRUE, the plugin will flag associated authenticated accounts to be mapped to proxy users when the server option check_proxy_users is enabled. |
+| sha256_password_proxy_users | OFF | RestartApply | If set to FALSE (the default), then the sha256_password authentication plugin will not signal for authenticated users to be checked for mapping to proxy users.When set to TRUE, the plugin will flag associated authenticated accounts to be mapped to proxy users when the server option check_proxy_users is enabled. |
+| log_bin_use_v1_row_events | OFF | RestartApply | If equal to 1 then version 1 row events are written to a row based binary log.If equal to 0, then the latest version of events are written.This option is useful during some upgrades. |
+| log_error_suppression_list |     | RestartApply | Comma-separated list of error-codes. Error messages corresponding to these codes will not be included in the error log. Only events with a severity of Warning or Information can be suppressed; events with System or Error severity will always be included. Requires the filter 'log_filter_internal' to be set in @@global.log_error_services, which is the default. |
+| log_queries_not_using_indexes | OFF | RestartApply | Log queries that are executed without benefit of any index to the slow log if it is open |
+| log_slow_admin_statements | OFF | RestartApply | Log slow OPTIMIZE, ANALYZE, ALTER and other administrative statements to the slow log if it is open. |
+| log_slow_replica_statements | OFF | RestartApply | Log slow statements executed by the replication applier threads to the slow log if it is open. |
+| log_slow_slave_statements | OFF | RestartApply | This option is deprecated. Use log_slow_replica_statements instead. |
+| log_throttle_queries_not_using_indexes | 0   | RestartApply | Log at most this many 'not using index' warnings per minute to the slow log. Any further warnings will be condensed into a single summary line. A value of 0 disables throttling. Option has no effect unless --log_queries_not_using_indexes is set. |
+| log_error_verbosity | 2   | RestartApply | How detailed the error log should be. 1, log errors only. 2, log errors and warnings. 3, log errors, warnings, and notes. Messages sent to the client are unaffected by this setting. |
+| log_statements_unsafe_for_binlog | ON  | RestartApply | Log statements considered unsafe when using statement based binary logging. |
+| long_query_time | 10  | RestartApply | Log all queries that have taken more than long_query_time seconds to execute to file. The argument will be treated as a decimal value with microsecond precision |
+| low_priority_updates | OFF | RestartApply | INSERT/DELETE/UPDATE has lower priority than selects |
+| lower_case_table_names | 0   | RestartApply | If set to 1 table names are stored in lowercase on disk and table names will be case-insensitive.Should be set to 2 if you are using a case insensitive file system |
+| max_allowed_packet | 67108864 | RestartApply | Max packet length to send to or receive from the server |
+| replica_max_allowed_packet | 1.07E+09 | RestartApply | The maximum size of packets sent from an upstream source server to this server. |
+| slave_max_allowed_packet | 1.07E+09 | RestartApply | This option is deprecated. Use replica_max_allowed_packet instead. |
+| max_binlog_cache_size | 1.84E+19 | RestartApply | Sets the total size of the transactional cache |
+| max_binlog_stmt_cache_size | 1.84E+19 | RestartApply | Sets the total size of the statement cache |
+| max_binlog_size | 1.07E+09 | RestartApply | Binary log will be rotated automatically when the size exceeds this value. Will also apply to relay logs if max_relay_log_size is 0 |
+| max_connect_errors | 100 | RestartApply | If there is more than this number of interrupted connections from a host this host will be blocked from further connections |
+| max_digest_length | 1024 | RestartApply | Maximum length considered for digest text. |
+| max_delayed_threads | 20  | RestartApply | Don't start more than this number of threads to handle INSERT DELAYED statements. If set to zero INSERT DELAYED will be not used. This variable is deprecated along with INSERT DELAYED. |
+| max_error_count | 1024 | RestartApply | Max number of errors/warnings to store for a statement |
+| max_heap_table_size | 16777216 | RestartApply | Don't allow creation of heap tables bigger than this |
+| max_join_size | 1.84E+19 | RestartApply | Joins that are probably going to read more than max_join_size records return an error |
+| max_seeks_for_key | 1.84E+19 | RestartApply | Limit assumed max number of seeks when looking up rows based on a key |
+| max_length_for_sort_data | 4096 | RestartApply | This variable is deprecated and will be removed in a future release. |
+| max_points_in_geometry | 65536 | RestartApply | Maximum number of points in a geometry |
+| max_relay_log_size | 0   | RestartApply | If non-zero: relay log will be rotated automatically when the size exceeds this value; if zero: when the size exceeds max_binlog_size |
+| max_sort_length | 1024 | RestartApply | The number of bytes to use when sorting long values with PAD SPACE collations (only the first max_sort_length bytes of each value are used; the rest are ignored) |
+| max_sp_recursion_depth | 0   | RestartApply | Maximum stored procedure recursion depth |
+| max_user_connections | 0   | RestartApply | The maximum number of active connections for a single user (0 = no limit) |
+| max_write_lock_count | 1.84E+19 | RestartApply | After this many write locks, allow some read locks to run in between |
+| min_examined_row_limit | 0   | RestartApply | Don't write queries to slow log that examine fewer rows than that |
+| net_buffer_length | 16384 | RestartApply | Buffer length for TCP/IP and socket communication |
+| net_read_timeout | 30  | RestartApply | Number of seconds to wait for more data from a connection before aborting the read |
+| net_write_timeout | 60  | RestartApply | Number of seconds to wait for a block to be written to a connection before aborting the write |
+| net_retry_count | 10  | RestartApply | If a read on a communication port is interrupted, retry this many times before giving up |
+| new | OFF | RestartApply | Use very new possible unsafe" functions" |
+| old | OFF | RestartApply | Use compatible behavior |
+| old_alter_table | OFF | RestartApply | Use old, non-optimized alter table |
+| optimizer_prune_level | 1   | RestartApply | Controls the heuristic(s) applied during query optimization to prune less-promising partial plans from the optimizer search space. Meaning: 0 - do not apply any heuristic, thus perform exhaustive search; 1 - prune plans based on number of retrieved rows |
+| optimizer_search_depth | 62  | RestartApply | Maximum depth of search performed by the query optimizer. Values larger than the number of relations in a query result in better query plans, but take longer to compile a query. Values smaller than the number of tables in a relation result in faster optimization, but may produce very bad query plans. If set to 0, the system will automatically pick a reasonable value |
+| optimizer_max_subgraph_pairs | 100000 | RestartApply | Maximum depth of subgraph pairs a query can have before the hypergraph join optimizer starts reducing the search space heuristically. Larger values may result in better query plans for large queries, but also more time and memory spent during planning. Increasing this larger than the actual number of subgraph pairs in the query will have no further effect. Ignored by the old (non-hypergraph) join optimizer |
+| range_optimizer_max_mem_size | 8388608 | RestartApply | Maximum amount of memory used by the range optimizer to allocate predicates during range analysis. The larger the number, more memory may be consumed during range analysis. If the value is too low to completed range optimization of a query, index range scan will not be considered for this query. A value of 0 means range optimizer does not have any cap on memory.|
+| histogram_generation_max_mem_size | 20000000 | RestartApply | Maximum amount of memory available for generating histograms |
+| parser_max_mem_size | 1.84E+19 | RestartApply | Maximum amount of memory available to the parser |
+| optimizer_switch | on  | RestartApply | optimizer_switch=option=val\[,option=val...\], where option is one of [index_merge, index_merge_union, index_merge_sort_union, index_merge_intersection, engine_condition_pushdown, index_condition_pushdown, mrr, mrr_cost_based, materialization, semijoin, loosescan, firstmatch, duplicateweedout, subquery_materialization_cost_based, skip_scan, block_nested_loop, batched_key_access, use_index_extensions, condition_fanout_filter, derived_merge, hash_join, subquery_to_derived, prefer_ordering_index, derived_condition_pushdown] and val is one of [on, off, default] |
+| global_connection_memory_limit | 1.84E+19 | RestartApply | Maximum amount of memory all connections can consume |
+| connection_memory_limit | 1.84E+19 | RestartApply | Maximum amount of memory connection can consume |
+| connection_memory_chunk_size | 8912 | RestartApply | Chunk size regulating frequency of updating the global memory counter |
+| global_connection_memory_tracking | OFF | RestartApply | Enable updating the global memory counter and checking the global connection memory limit exceeding |
+| end_markers_in_json | OFF | RestartApply | In JSON output (EXPLAIN FORMAT=JSON" and optimizer trace) |
+| optimizer_trace |     | RestartApply | Controls tracing of the Optimizer: optimizer_trace=option=val\[,option=val...\], where option is one of [enabled, one_line] and val is one of [on, default] |
+| optimizer_trace_features | on  | RestartApply | Enables/disables tracing of selected features of the Optimizer: optimizer_trace_features=option=val\[,option=val...\], where option is one of [greedy_search, range_optimizer, dynamic_range, repeated_subselect] and val is one of [on, off, default] |
+| optimizer_trace_offset | -1 | RestartApply | Offset of first optimizer trace to show; see manual |
+| optimizer_trace_limit | 1   | RestartApply | Maximum number of shown optimizer traces |
+| optimizer_trace_max_mem_size | 1048576 | RestartApply | Maximum allowed cumulated size of stored optimizer traces |
+| pid_file |     | RestartApply | Pid file used by safe_mysqld |
+| plugin_dir |     | Unsupported | Directory for plugins |
+| port | 0   | Unsupported | Port number to use for connection or 0 to default to, my.cnf, $MYSQL_TCP_PORT, /etc/services, built-in default (3306), whatever comes first |
+| preload_buffer_size | 32768 | RestartApply | The size of the buffer that is allocated when preloading indexes |
+| read_buffer_size | 131072 | RestartApply | Each thread that does a sequential scan allocates a buffer of this size for each table it scans. If you do many sequential scans, you may want to increase this value |
+| require_secure_transport | OFF | RestartApply | When this option is enabled, connections attempted using insecure transport will be rejected.Secure transports are SSL/TLS, Unix socket or Shared Memory (on Windows). |
+| read_only | OFF | RestartApply | Make all non-temporary tables read-only, with the exception for replication applier threads and users with the SUPER privilege. |
+| super_read_only | OFF | RestartApply | Make all non-temporary tables read-only, with the exception for replication applier threads.Users with the SUPER privilege are affected, unlike read_only.Setting super_read_only to ON also sets read_only to ON. |
+| read_rnd_buffer_size | 262144 | RestartApply | When reading rows in sorted order after a sort, the rows are read through this buffer to avoid a disk seeks |
+| div_precision_increment | 4   | RestartApply | Precision of the result of '/' operator will be increased on that value |
+| eq_range_index_dive_limit | 200 | RestartApply | The optimizer will use existing index statistics instead of doing index dives for equality ranges if the number of equality ranges for the index is larger than or equal to this number. If set to 0, index dives are always used. |
+| range_alloc_block_size | 4096 | RestartApply | Allocation block size for storing ranges during optimization |
+| query_alloc_block_size | 8192 | RestartApply | Allocation block size for query parsing and execution |
+| query_prealloc_size | 8192 | RestartApply | Persistent buffer for query parsing and execution |
+| skip_networking | OFF | RestartApply | Don't allow connection with TCP/IP |
+| skip_name_resolve | OFF | RestartApply | Don't resolve hostnames. All hostnames are IP's or 'localhost'. |
+| skip_show_database | OFF | RestartApply | Don't allow 'SHOW DATABASE' commands |
+| socket |     | RestartApply | Socket file to use for connection |
+| thread_stack | 1048576 | RestartApply | The stack size for each thread |
+| tmpdir |     | RestartApply | Path for temporary files. Several paths may be specified, separated by a colon (:), in this case they are used in a round-robin fashion |
+| transaction_alloc_block_size | 8192 | RestartApply | Allocation block size for transactions to be stored in binary log |
+| transaction_prealloc_size | 4096 | RestartApply | Persistent buffer for transactions to be stored in binary log |
+| thread_handling | one-thread-per-connection | RestartApply | Define threads usage for handling queries, one of one-thread-per-connection, no-threads, loaded-dynamically |
+| secure_file_priv |     | RestartApply | Limit LOAD DATA, SELECT ... OUTFILE, and LOAD_FILE() to files within specified directory |
+| server_id | 1   | RestartApply | Uniquely identifies the server instance in the community of replication partners |
+| server_id_bits | 32  | RestartApply | Set number of significant bits in server-id |
+| regexp_time_limit | 32  | RestartApply | Timeout for regular expressions matches, in steps of the match engine, typically on the order of milliseconds. |
+| regexp_stack_limit | 8000000 | RestartApply | Stack size limit for regular expressions matches |
+| replica_compressed_protocol | OFF | RestartApply | Use compression in the source/replica protocol. |
+| slave_compressed_protocol | OFF | RestartApply | This option is deprecated. Use replica_compressed_protocol instead. |
+| replica_exec_mode | STRICT | RestartApply | Modes for how replication events should be executed. Legal values are STRICT (default) and IDEMPOTENT. In IDEMPOTENT mode, replication will ignore duplicate key errors and key not found errors. In STRICT mode, replication will stop at those errors. |
+| slave_exec_mode | STRICT | RestartApply | This option is deprecated. Use replica_exec_mode instead. |
+| replica_type_conversions |     | RestartApply | Set of type conversions that may be used by the replication applier thread for row events. Allowed values are: ALL_LOSSY to enable lossy conversions, ALL_NON_LOSSY to enable non-lossy conversions, ALL_UNSIGNED to treat all integer column type data to be unsigned values, and ALL_SIGNED to treat all integer column type data to be signed values. Default treatment is ALL_SIGNED. If ALL_SIGNED and ALL_UNSIGNED both are specified, ALL_SIGNED will take higher priority than ALL_UNSIGNED. If the variable is assigned the empty set, no conversions are allowed and it is expected that the types match exactly. |
+| slave_type_conversions |     | RestartApply | This option is deprecated. Use replica_type_conversions instead. |
+| replica_sql_verify_checksum | ON  | RestartApply | Force checksum verification of replication events after reading them from relay log. Note: The replica always verifies checksums for events received from the network, if the event has a checksum at all, before it writes the event to the relay log. Enabled by default. |
+| slave_sql_verify_checksum | ON  | RestartApply | This option is deprecated. Use replica_sql_verify_checksum instead. |
+| slave_rows_search_algorithms | HASH_SCAN | RestartApply | The set of algorithms used by the replication applier while searching the table for rows to update or delete. Possible values are: INDEX_SCAN, TABLE_SCAN and HASH_SCAN. Any combination is allowed, and the applier picks the most efficient among them for any given scenario. (Default: INDEX_SCAN, HASH_SCAN). |
+| replica_parallel_type | LOGICAL_CLOCK | RestartApply | The method used by the replication applier to parallelize transactions. DATABASE, indicates that it may apply transactions in parallel in case they update different databases. LOGICAL_CLOCK, which is the default, indicates that it decides whether two transactions can be applied in parallel using the logical timestamps computed by the source, according to binlog_transaction_dependency_tracking. |
+| slave_parallel_type | LOGICAL_CLOCK | RestartApply | This option is deprecated. Use replica_parallel_type instead. |
+| binlog_transaction_dependency_tracking | COMMIT_ORDER | RestartApply | Selects the source of dependency information from which to compute logical timestamps, which replicas can use to decide which transactions can be executed in parallel when using replica_parallel_type=LOGICAL_CLOCK. Possible values are COMMIT_ORDER, WRITESET and WRITESET_SESSION. |
+| binlog_transaction_dependency_history_size | 25000 | RestartApply | Maximum number of rows to keep in the writeset history. |
+| replica_preserve_commit_order | ON  | RestartApply | Force replication worker threads to commit in the same order as on the source. Enabled by default |
+| slave_preserve_commit_order | ON  | RestartApply | This option is deprecated. Use replica_preserve_commit_order instead. |
+| binlog_checksum | CRC32 | RestartApply | Type of BINLOG_CHECKSUM_ALG. Include checksum for log events in the binary log. Possible values are NONE and CRC32; default is CRC32. |
+| source_verify_checksum | OFF | RestartApply | Force checksum verification of events in binary log before sending them to replicas or printing them in output of SHOW BINLOG EVENTS. Disabled by default. |
+| master_verify_checksum | OFF | RestartApply | This option is deprecated. Use source_verify_checksum instead. |
+| slow_launch_time | 2   | RestartApply | If creating the thread takes longer than this value (in seconds), the Slow_launch_threads counter will be incremented |
+| sort_buffer_size | 262144 | RestartApply | Each thread that needs to do a sort allocates a buffer of this size |
+| sql_mode | NO_ENGINE_SUBSTITUTION | RestartApply | Syntax: sql-mode=mode\[,mode\[,mode...\]\]. See the manual for the complete list of valid sql modes |
+| max_execution_time | 0   | RestartApply | Kill SELECT statement that takes over the specified number of milliseconds |
+| ssl_fips_mode | OFF | RestartApply | SSL FIPS mode (applies only for OpenSSL); permitted values are: OFF, ON, STRICT |
+| auto_generate_certs | ON  | RestartApply | Auto generate SSL certificates at server startup if --ssl is set to ON and none of the other SSL system variables are specified and certificate/key files are not present in data directory. |
+| updatable_views_with_limit | YES | RestartApply | YES = Don't issue an error message (warning only) if a VIEW without presence of a key of the underlying table is used in queries with a LIMIT clause for updating. NO = Prohibit update of a VIEW, which does not contain a key of the underlying table and the query uses a LIMIT clause (usually get from GUI tools) |
+| schema_definition_cache | 256 | RestartApply | The number of cached schema definitions |
+| tablespace_definition_cache | 256 | RestartApply | The number of cached tablespace definitions |
+| stored_program_definition_cache | 256 | RestartApply | The number of cached stored program definitions |
+| thread_cache_size | 0   | RestartApply | How many threads we should keep in a cache for reuse |
+| tmp_table_size | 16777216 | RestartApply | If an internal in-memory temporary table in the MEMORY or TempTable storage engine exceeds this size, MySQL will automatically convert it to an on-disk table|
+| wait_timeout | 28800 | RestartApply | The number of seconds the server waits for activity on a connection before closing it |
+| internal_tmp_mem_storage_engine | TempTable | RestartApply | The default storage engine for in-memory internal temporary tables. |
+| temptable_max_ram | 1.07E+09 | RestartApply | Maximum amount of memory (in bytes) the TempTable storage engine is allowed to allocate from the main memory (RAM) before starting to store data on disk. |
+| temptable_max_mmap | 1.07E+09 | RestartApply | Maximum amount of memory (in bytes) the TempTable storage engine is allowed to allocate from MMAP-backed files before starting to store data on disk. |
+| temptable_use_mmap | ON  | RestartApply | Use mmap files for temptables. This variable is deprecated and will be removed in a future release. |
+| big_tables | OFF | RestartApply | Allow big result sets by saving all temporary sets on file (Solves most 'table full' errors) |
+| profiling_history_size | 15  | RestartApply | Limit of query profiling memory |
+| default_week_format | 0   | RestartApply | The default week format used by WEEK() functions |
+| group_concat_max_len | 1024 | RestartApply | The maximum length of the result of functionGROUP_CONCAT() |
+| report_host |     | RestartApply | Hostname or IP that this replica will report to the source while initiating the replication connection. Will appear in the output of SHOW REPLICAS. Leave this unset if you do not want the replica to register itself with the source. Note that it is not sufficient for the source to simply read the IP of the replica off the socket once the replica connects: in the presence of NAT other routing features, that IP may not be valid for connecting to the replica from the source or other hosts. |
+| report_user |     | RestartApply | The account user name that this replica will report to the source while initiating the replication connection. |
+| report_password |     | RestartApply | The account password that this replica will report to the source while initiating the replication connection. |
+| report_port | 0   | RestartApply | The port for connecting to the replica, which this replica will report to the source while initiating the replication connection. Set it only if the replica is listening on a non-default port or if you have a special tunnel from the source or other clients to this replica. If not sure, leave this option unset. |
+| keep_files_on_create | OFF | RestartApply | Don't overwrite stale .MYD and .MYI even if no directory is specified |
+| general_log_file |     | RestartApply | Log connections and queries to given file |
+| slow_query_log_file |     | RestartApply | Log slow queries to given log file. Defaults logging to hostname-slow.log. Must be enabled to activate other slow log options |
+| general_log | OFF | RestartApply | Log connections and queries to a table or log file. Defaults to logging to a file hostname.log, or if --log-output=TABLE is used, to a table mysql.general_log. |
+| log_raw | OFF | RestartApply | Log to general log before any rewriting of the query. For use in debugging, not production as sensitive information may be logged. |
+| slow_query_log | OFF | RestartApply | Log slow queries to a table or log file. Defaults logging to a file hostname-slow.log or a table mysql.slow_log if --log-output=TABLE is used. Must be enabled to activate other slow log options |
+| log_slow_extra | OFF | RestartApply | Print more attributes to the slow query log file. Has no effect on logging to table. |
+| log_output | FILE | RestartApply | Syntax: log-output=value\[,value...\], where value" could be TABLE |
+| log_replica_updates | ON  | RestartApply | If enabled, the replication applier threads will write to this server's binary log. |
+| log_slave_updates | ON  | RestartApply | This option is deprecated. Use log_replica_updates instead. |
+| relay_log |     | RestartApply | The location and name to use for relay logs |
+| relay_log_info_file |     | RestartApply | The location and name of the file that remembers where the SQL replication thread is in the relay logs |
+| relay_log_purge | ON  | RestartApply | if disabled - do not purge relay logs. if enabled - purge them as soon as they are no more needed |
+| relay_log_recovery | OFF | RestartApply | If enabled, existing relay logs will be skipped by the replication threads. The receiver will start a new relay log and the applier will start reading from the beginning of that file. The receiver's position relative to the source will be reset to the applier's position relative to the source; the receiver uses this in case SOURCE_AUTO_POSITION=0. |
+| rpl_read_size | 8192 | RestartApply | The size for reads done from the binlog and relay log. It must be a multiple of 4kb. Making it larger might help with IO stalls while reading these files when they are not in the OS buffer cache |
+| replica_allow_batching | ON  | RestartApply | Allow this replica to batch requests when using the NDB storage engine. |
+| slave_allow_batching | ON  | RestartApply | This option is deprecated. Use replica_allow_batching instead. |
+| replica_load_tmpdir |     | RestartApply | The location where this replica will store temporary files when replicating a LOAD DATA INFILE command from a source having binlog_format=STATEMENT. |
+| slave_load_tmpdir |     | RestartApply | This option is deprecated. Use replica_load_tmpdir instead. |
+| replica_net_timeout | 60  | RestartApply | Number of seconds to wait for more data from a replication connection before aborting the read. |
+| slave_net_timeout | 60  | RestartApply | This option is deprecated. Use replica_net_timeout instead. |
+| replica_skip_errors |     | RestartApply | Comma-separated list of error numbers. If an applier thread on this replica encounters one of these errors while applying a Query_log_event, it will ignore the error, rather than stop. |
+| slave_skip_errors |     | RestartApply | This option is deprecated. Use replica_skip_errors instead. |
+| relay_log_space_limit | 0   | RestartApply | Maximum space to use for all relay logs |
+| sync_relay_log | 10000 | RestartApply | Synchronously flush relay log to disk after every #th event. Use 0 to disable synchronous flushing |
+| sync_relay_log_info | 10000 | RestartApply | Synchronously flush relay log info to disk after every #th transaction. Use 0 to disable synchronous flushing |
+| replica_checkpoint_period | 300 | RestartApply | When using a multi-threaded applier (replica_parallel_workers>0), it will update the worker progress status periodically. This option specifies the maximum number of milliseconds between updates. |
+| slave_checkpoint_period | 300 | RestartApply | This option is deprecated. Use replica_checkpoint_period instead. |
+| replica_checkpoint_group | 512 | RestartApply | When using multi-threaded applier (replica_parallel_workers>0), it will update the worker progress status periodically. This option specifies the maximum number of committed transactions between updates. |
+| slave_checkpoint_group | 512 | RestartApply | This option is deprecated. Use replica_checkpoint_group instead. |
+| sync_binlog | 1   | RestartApply | Synchronously flush binary log to disk after every #th write to the file. Use 0 to disable synchronous flushing |
+| sync_source_info | 10000 | RestartApply | Synchronize replication receiver positions to disk periodically, after the specified number of events. Use 0 to disable periodic synchronization. |
+| sync_master_info | 10000 | RestartApply | This option is deprecated. Use sync_source_info instead. |
+| replica_transaction_retries | 10  | RestartApply | Number of times the replication applier will retry a transaction in case it failed with a deadlock or other transient error, before it gives up and stops. |
+| slave_transaction_retries | 10  | RestartApply | This option is deprecated. Use replica_transaction_retries instead. |
+| replica_parallel_workers | 4   | RestartApply | Number of worker threads for executing events in parallel|
+| slave_parallel_workers | 4   | RestartApply | This option is deprecated. Use replica_parallel_workers instead. |
+| replica_pending_jobs_size_max | 1.34E+08 | RestartApply | Soft limit on the size, in bytes, of per-worker queues of events that have not yet been applied. The queue size may exceed this limit in case a single event is bigger than the limit. |
+| slave_pending_jobs_size_max | 1.34E+08 | RestartApply | This option is deprecated. Use replica_pending_jobs_size_max instead. |
+| host_cache_size | 128 | RestartApply | How many host names should be cached to avoid resolving. |
+| enforce_gtid_consistency |     | RestartApply | Prevents execution of statements that would be impossible to log in a transactionally safe manner. Currently, the disallowed statements include CREATE TEMPORARY TABLE inside transactions, all updates to non-transactional tables, and CREATE TABLE ... SELECT. |
+| binlog_gtid_simple_recovery | ON  | RestartApply | If this option is enabled, the server does not open more than two binary logs when initializing GTID_PURGED and GTID_EXECUTED, either during server restart or when binary logs are being purged. Enabling this option is useful when the server has already generated many binary logs without GTID events (e.g., having GTID_MODE = OFF). Note: If this option is enabled, GLOBAL.GTID_EXECUTED and GLOBAL.GTID_PURGED may be initialized wrongly in two cases: (1) All binary logs were generated by MySQL 5.7.5 or older, and GTID_MODE was ON for some binary logs but OFF for the newest binary log. (2) The oldest existing binary log was generated by MySQL 5.7.5 or older, and SET GTID_PURGED was issued after the oldest binary log was generated. If a wrong set is computed in one of case (1) or case (2), it will remain wrong even if the server is later restarted with this option disabled. |
+| stored_program_cache | 256 | RestartApply | The soft upper limit for number of cached stored routines for one connection. |
+| gtid_mode | OFF | RestartApply | Controls whether Global Transaction Identifiers (GTIDs) are enabled. Can be OFF, OFF_PERMISSIVE, ON_PERMISSIVE, or ON. OFF means that no transaction has a GTID. OFF_PERMISSIVE means that new transactions (committed in a client session using GTID_NEXT='AUTOMATIC') are not assigned any GTID, and replicated transactions are allowed to have or not have a GTID. ON_PERMISSIVE means that new transactions are assigned a GTID, and replicated transactions are allowed to have or not have a GTID. ON means that all transactions have a GTID. ON is required on a source before any replica can use SOURCE_AUTO_POSITION=1. To safely switch from OFF to ON, first set all servers to OFF_PERMISSIVE, then set all servers to ON_PERMISSIVE, then wait for all transactions without a GTID to be replicated and executed on all servers, and finally set all servers to GTID_MODE = ON. |
+| gtid_executed_compression_period | 0   | RestartApply | Compress the mysql.gtid_executed table whenever this number of transactions have been added, by waking up a foreground thread (compress_gtid_table). This compression method only operates when binary logging is disabled on the replica; if binary logging is enabled, the table is compressed every time the binary log is rotated, and this value is ignored. Before MySQL 8.0.23, the default is 1000, and from MySQL 8.0.23, the default is zero, which disables this compression method. This is because in releases from MySQL 8.0.17, InnoDB transactions are written to the mysql.gtid_executed table by a separate process to non-InnoDB transactions. If the server has a mix of InnoDB and non-InnoDB transactions, attempting to compress the table with the compress_gtid_table thread can slow this process, so from MySQL 8.0.17 it is recommended that you set gtid_executed_compression_period to 0. |
+| disconnect_on_expired_password | ON  | RestartApply | Give clients that don't signal password expiration support execution time error(s) instead of connection error |
+| validate_user_plugins | ON  | RestartApply | Turns on additional validation of authentication plugins assigned to user accounts.|
+| block_encryption_mode | aes-128-ecb | RestartApply | mode for AES_ENCRYPT/AES_DECRYPT |
+| session_track_system_variables |     | RestartApply | Track changes in registered system variables. |
+| session_track_schema | ON  | RestartApply | Track changes to the 'default schema'. |
+| session_track_transaction_info | OFF | RestartApply | Track changes to the transaction attributes. OFF to disable; STATE to track just transaction state (Is there an active transaction? Does it have any data? etc.); CHARACTERISTICS to track transaction state and report all statements needed to start a transaction with the same characteristics (isolation level, read only/read write, snapshot - but not any work done / data modified within the transaction). |
+| session_track_state_change | OFF | RestartApply | Track changes to the 'session state'. |
+| offline_mode | OFF | RestartApply | Make the server into offline mode |
+| avoid_temporal_upgrade | OFF | RestartApply | When this option is enabled, the pre-5.6.4 temporal types are not upgraded to the new format for ALTER TABLE requests ADD/CHANGE/MODIFY COLUMN, ADD INDEX or FORCE operation. This variable is deprecated and will be removed in a future release. |
+| show_old_temporals | OFF | RestartApply | When this option is enabled, the pre-5.6.4 temporal types will be marked in the 'SHOW CREATE TABLE' and 'INFORMATION_SCHEMA.COLUMNS' table as a comment in COLUMN_TYPE field. This variable is deprecated and will be removed in a future release. |
+| disabled_storage_engines |     | RestartApply | Limit CREATE TABLE for the storage engines listed |
+| persisted_globals_load | ON  | RestartApply | When this option is enabled, config file mysqld-auto.cnf is read and applied to server, else this file is ignored even if present. |
+| mandatory_roles |     | RestartApply | All the specified roles are always considered granted to every user and they can't be revoked. Mandatory roles still require activation unless they are made into default roles. The granted roles will not be visible in the mysql.role_edges table. |
+| activate_all_roles_on_login | OFF | RestartApply | Automatically set all granted roles as active after the user has authenticated successfully. |
+| password_history | 0   | RestartApply | The number of old passwords to check in the history. Set to 0 (the default) to turn the checks off |
+| password_reuse_interval | 0   | RestartApply | The minimum number of days that need to pass before a password can be reused. Set to 0 (the default) to turn the checks off |
+| binlog_row_value_options |     | RestartApply | When set to PARTIAL_JSON, this option enables a space-efficient row-based binary log format for UPDATE statements that modify a JSON value using only the functions JSON_SET, JSON_REPLACE, and JSON_REMOVE. For such updates, only the modified parts of the JSON document are included in the binary log, so small changes of big documents may need significantly less space. |
+| show_create_table_verbosity | OFF | RestartApply | When this option is enabled, it increases the verbosity of 'SHOW CREATE TABLE'. |
+| secondary_engine_cost_threshold | 100000 | RestartApply | Controls which statements to consider for execution in a secondary storage engine. Only statements that have a cost estimate higher than this value will be attempted executed in a secondary storage engine. |
+| sql_require_primary_key | OFF | RestartApply | When set, tables must be created with a primary key, and an existing primary key cannot be removed with 'ALTER TABLE'. Attempts to do so will result in an error. |
+| sql_generate_invisible_primary_key | OFF | RestartApply | When set, if a table is created without a primary key then server generates invisible auto-increment column as a primary key for the table. |
+| show_gipk_in_create_table_and_information_schema | ON  | RestartApply | When set, if a primary key is generated for a table then SHOW commands and INFORMATION_SCHEMA tables shows generated invisible primary key definition. |
+| persist_only_admin_x509_subject |     | RestartApply | The client peer certificate name required to enable setting all system variables via SET PERSIST\[_ONLY\] |
+| binlog_row_event_max_size | 8192 | RestartApply | The maximum size of a row-based binary log event in bytes. Rows will be grouped into events smaller than this size if possible. The value has to be a multiple of 256. |
+| group_replication_consistency | EVENTUAL | RestartApply | Transaction consistency guarantee, possible values: EVENTUAL, BEFORE_ON_PRIMARY_FAILOVER, BEFORE, AFTER, BEFORE_AND_AFTER |
+| binlog_encryption | OFF | RestartApply | Enable/disable binary and relay logs encryption. |
+| binlog_rotate_encryption_master_key_at_startup | OFF | RestartApply | Force binlog encryption master key rotation at startup |
+| default_table_encryption | OFF | RestartApply | Database and tablespace are created with this default encryption property unless the user specifies an explicit encryption property. |
+| table_encryption_privilege_check | OFF | RestartApply | Indicates if server enables privilege check when user tries to use non-default value for CREATE DATABASE or CREATE TABLESPACE or when user tries to do CREATE TABLE with ENCRYPTION option which deviates from per-database default. |
+| print_identified_with_as_hex | OFF | RestartApply | SHOW CREATE USER will print the AS clause as HEX if it contains non-prinable characters |
+| generated_random_password_length | 20  | RestartApply | Determines the length randomly generated passwords in CREATE USER-,SET PASSWORD- or ALTER USER statements |
+| protocol_compression_algorithms |     | RestartApply | List of compression algorithms supported by server. Supported values are any combination of zlib, zstd, uncompressed. Command line clients may use the --compression-algorithms flag to specify a set of algorithms, and the connection will use an algorithm supported by both client and server. It picks zlib if both client and server support it; otherwise it picks zstd if both support it; otherwise it picks uncompressed if both support it; otherwise it fails. |
+| replication_optimize_for_static_plugin_config | OFF | RestartApply | Optional flag that blocks plugin install/uninstall and allows skipping the acquisition of the lock to read from the plugin list and the usage of read-optimized spin-locks. Use only when plugin hook callback needs optimization (a lot of semi-sync replicas, for instance). |
+| replication_sender_observe_commit_only | OFF | RestartApply | Optional flag that allows for only calling back observer hooks at commit. |
+| skip_replica_start | OFF | RestartApply | Do not start replication threads automatically when the server starts. |
+| authentication_policy |     | RestartApply | Defines policies around how user account can be configured with Multi Factor authentication methods during CREATE/ALTER USER statement. This variable accepts at-most 3 comma separated list of authentication plugin names where each value refers to what authentication plugin should be used in place of 1st Factor Authentication (FA), 2FA and 3FA method. Value \* indicates any plugin is allowed for 1FA, 2FA and 3FA method. An empty value means nth FA method is optional. |
+| skip_slave_start | OFF | RestartApply | This option is deprecated. Use skip_replica_start instead. |
+| terminology_use_previous | NONE | RestartApply | Make monitoring tables and statements use the identifiers that were in use before they were changed in a given release. That includes names for mutexes, read/write locks, condition variables, memory allocations, thread names, thread stages, and thread commands. When the session option is set to BEFORE_8_0_26, the session uses the names that were in use until 8.0.25, when it selects from performance_schema tables, or selects from INFORMATION_SCHEMA.PROCESSLIST, or issues SHOW PROCESSLIST or SHOW REPLICA STATUS. When the global option is set to BEFORE_8_0_26, new sessions use BEFORE_8_0_26 as default for the session option, and in addition the thread commands that were in use until 8.0.25 are written to the slow query log. |
+| xa_detach_on_prepare | ON  | RestartApply | When set, XA transactions will be detached (AKA dissociated or disconnected) from connection as part of XA PREPARE. This means that the XA transaction can be committed/rolled back by any connection, even if the starting connection has not terminated, and the starting connection can start new transactions. As a side effect, temporary tables cannot be used inside XA transactions. When disabled, XA transactions are associated with the same connection until the session disconnects. ON is the only safe choice for replication. |
+| debug_sensitive_session_string |     | RestartApply | Debug variable to test sensitive session string variable. |
+| explain_format | TRADITIONAL | RestartApply | The default format in which the EXPLAIN statement displays information. Valid values are TRADITIONAL (default), TREE, JSON and TRADITIONAL_STRICT. TRADITIONAL_STRICT is only used internally by the mtr test suite, and is not meant to be used anywhere else. |
+| sha256_password_private_key_path |     | RestartApply | A fully qualified path to the private RSA key used for authentication |
+| sha256_password_public_key_path |     | RestartApply | A fully qualified path to the public RSA key used for authentication |
+| sha256_password_auto_generate_rsa_keys | ON  | RestartApply | Auto generate RSA keys at server startup if corresponding system variables are not specified and key files are not present at the default location. |
+| caching_sha2_password_private_key_path |     | RestartApply | A fully qualified path to the private RSA key used for authentication. |
+| caching_sha2_password_public_key_path |     | RestartApply | A fully qualified path to the public RSA key used for authentication. |
+| caching_sha2_password_auto_generate_rsa_keys | ON  | RestartApply | Auto generate RSA keys at server startup if corresponding system variables are not specified and key files are not present at the default location. |
+| caching_sha2_password_digest_rounds | 5000 | RestartApply | Number of SHA2 rounds to be done when storing a password hash onto disk. |
+| innodb_api_trx_level | 0   | RestartApply | InnoDB API transaction isolation level |
+| innodb_api_bk_commit_interval | 5   | RestartApply | Background commit interval in seconds |
+| innodb_autoextend_increment | 64  | RestartApply | Data file autoextend increment in megabytes |
+| innodb_dedicated_server | OFF | RestartApply | Automatically scale innodb_buffer_pool_size and innodb_redo_log_capacity based on system memory. Also set innodb_flush_method=O_DIRECT_NO_FSYNC, if supported |
+| innodb_buffer_pool_size | 1.34E+08 | RestartApply | The size of the memory buffer InnoDB uses to cache data and indexes of its tables. |
+| innodb_buffer_pool_chunk_size | 1.34E+08 | RestartApply | Size of a single memory chunk within each buffer pool instance for resizing buffer pool. Online buffer pool resizing happens at this granularity. |
+| innodb_buffer_pool_instances | 0   | RestartApply | Number of buffer pool instances, set to higher value on high-end machines to increase scalability |
+| innodb_buffer_pool_filename |     | RestartApply | Filename to/from which to dump/load the InnoDB buffer pool |
+| innodb_buffer_pool_dump_now | OFF | RestartApply | Trigger an immediate dump of the buffer pool into a file named @@innodb_buffer_pool_filename |
+| innodb_buffer_pool_dump_at_shutdown | ON  | RestartApply | Dump the buffer pool into a file named @@innodb_buffer_pool_filename |
+| innodb_buffer_pool_in_core_file | ON  | RestartApply | This option has no effect if @@core_file is OFF. If @@core_file is ON, and this option is OFF, then the core dump file will be generated only if it is possible to exclude buffer pool from it. As soon as it will be determined that such exclusion is impossible a warning will be emitted and @@core_file will be set to OFF to prevent generating a core dump. If this option is enabled (which is the default), then core dumping logic will not be affected.|
+| innodb_buffer_pool_dump_pct | 25  | RestartApply | Dump only the hottest N% of each buffer pool, defaults to 25 |
+| innodb_buffer_pool_evict |     | RestartApply | Evict pages from the buffer pool |
+| innodb_buffer_pool_load_now | OFF | RestartApply | Trigger an immediate load of the buffer pool from a file named @@innodb_buffer_pool_filename |
+| innodb_buffer_pool_load_abort | OFF | RestartApply | Abort a currently running load of the buffer pool |
+| innodb_buffer_pool_load_at_startup | ON  | RestartApply | Load the buffer pool from a file named @@innodb_buffer_pool_filename |
+| innodb_lru_scan_depth | 1024 | RestartApply | How deep to scan LRU to keep it clean |
+| innodb_flush_neighbors | 0   | RestartApply | Set to 0 (don't flush neighbors from buffer pool), 1 (flush contiguous neighbors from buffer pool) or 2 (flush neighbors from buffer pool), when flushing a block |
+| innodb_checksum_algorithm | crc32 | RestartApply | The algorithm InnoDB uses for page checksumming. Possible values are CRC32 (hardware accelerated if the CPU supports it) write crc32, allow any of the other checksums to match when reading; STRICT_CRC32 write crc32, do not allow other algorithms to match when reading; INNODB write a software calculated checksum, allow any other checksums to match when reading; STRICT_INNODB write a software calculated checksum, do not allow other algorithms to match when reading; NONE write a constant magic number, do not do any checksum verification when reading; STRICT_NONE write a constant magic number, do not allow values other than that magic number when reading; Files updated when this option is set to crc32 or strict_crc32 will not be readable by MySQL versions older than 5.6.3 |
+| innodb_log_checksums | ON  | RestartApply | Whether to compute and require checksums for InnoDB redo log blocks |
+| innodb_commit_concurrency | 0   | RestartApply | Helps in performance tuning in heavily concurrent environments. |
+| innodb_concurrency_tickets | 5000 | RestartApply | Number of times a thread is allowed to enter InnoDB within the same SQL query after it has once got the ticket |
+| innodb_compression_level | 6   | RestartApply | Compression level used for compressed row format.0 is no compression, 1 is fastest, 9 is best compression and default is 6. |
+| innodb_ddl_buffer_size | 1048576 | RestartApply | Maximum size of memory to use (in bytes) for DDL. |
+| innodb_ddl_threads | 4   | RestartApply | Maximum number of threads to use forDDL. |
+| innodb_data_file_path |     | RestartApply | Path to individual files and their sizes. |
+| innodb_temp_data_file_path |     | RestartApply | Path to files and their sizes making temp-tablespace. |
+| innodb_data_home_dir |     | RestartApply | The common part for InnoDB table spaces. |
+| innodb_extend_and_initialize | ON  | RestartApply | Initialize the allocated space by writing zeros (enabled by default). |
+| innodb_doublewrite | ON  | RestartApply | Enable InnoDB doublewrite buffer (enabled by default). Disable with --skip-innodb-doublewrite. |
+| innodb_doublewrite_dir |     | RestartApply | Use a separate directory for the doublewrite buffer files,|
+| innodb_doublewrite_batch_size | 0   | RestartApply | Number of double write pages to write in a batch |
+| innodb_doublewrite_files | 0   | RestartApply | Number of double write files |
+| innodb_doublewrite_pages | 0   | RestartApply | Number of double write pages per thread |
+| innodb_stats_include_delete_marked | OFF | RestartApply | Include delete marked records when calculating persistent statistics |
+| innodb_api_enable_binlog | OFF | RestartApply | Enable binlog for applications direct access InnoDB through InnoDB APIs |
+| innodb_api_enable_mdl | OFF | RestartApply | Enable MDL for applications direct access InnoDB through InnoDB APIs |
+| innodb_api_disable_rowlock | OFF | RestartApply | Disable row lock when direct access InnoDB through InnoDB APIs |
+| innodb_fast_shutdown | 1   | RestartApply | Speeds up the shutdown process of the InnoDB storage engine. Possible values are 0, 1 (faster) or 2 (fastest - crash-like). |
+| innodb_read_io_threads | 4   | RestartApply | Number of background read I/O threads in InnoDB. |
+| innodb_write_io_threads | 4   | RestartApply | Number of background write I/O threads in InnoDB. |
+| innodb_file_per_table | ON  | RestartApply | Stores each InnoDB table to an .ibd file in the database dir. |
+| innodb_flush_log_at_timeout | 1   | RestartApply | Write and flush logs every (n) second. |
+| innodb_flush_log_at_trx_commit | 1   | RestartApply | Set to 0 (write and flush once per second), 1 (write and flush at each commit), or 2 (write at commit, flush once per second). |
+| innodb_flush_method | fsync | RestartApply | With which method to flush data |
+| innodb_force_recovery | 0   | RestartApply | Helps to save your data in case the disk image of the database becomes corrupt. |
+| innodb_force_recovery_crash | 0   | RestartApply | Kills the server during crash recovery. |
+| innodb_fill_factor | 100 | RestartApply | Percentage of B-tree page filled during bulk insert |
+| innodb_ft_cache_size | 8000000 | RestartApply | InnoDB Fulltext search cache size in bytes |
+| innodb_ft_total_cache_size | 6.4E+08 | RestartApply | Total memory allocated for InnoDB Fulltext Search cache |
+| innodb_ft_result_cache_limit | 2E+09 | RestartApply | InnoDB Fulltext search query result cache limit in bytes |
+| innodb_ft_enable_stopword | ON  | RestartApply | Create FTS index with stopword. |
+| innodb_ft_max_token_size | 84  | RestartApply | InnoDB Fulltext search maximum token size in characters |
+| innodb_ft_min_token_size | 3   | RestartApply | InnoDB Fulltext search minimum token size in characters |
+| innodb_ft_num_word_optimize | 2000 | RestartApply | InnoDB Fulltext search number of words to optimize for each optimize table call|
+| innodb_ft_sort_pll_degree | 2   | RestartApply | InnoDB Fulltext search parallel sort degree, will round up to nearest power of 2 number |
+| innodb_force_load_corrupted | OFF | RestartApply | Force InnoDB to load metadata of corrupted table. |
+| innodb_lock_wait_timeout | 50  | RestartApply | Timeout in seconds an InnoDB transaction may wait for a lock before being rolled back. Values above 100000000 disable the timeout. |
+| innodb_deadlock_detect | ON  | RestartApply | Enable/disable InnoDB deadlock detector (default ON). if set to OFF, deadlock detection is skipped, and we rely on innodb_lock_wait_timeout in case of deadlock. |
+| innodb_page_size | 16384 | StartupApply | Page size to use for all InnoDB tablespaces. |
+| innodb_log_buffer_size | 16777216 | RestartApply | The size of the buffer which InnoDB uses to write log to the log files on disk. |
+| innodb_log_file_size | 50331648 | RestartApply | Size of each log file before upgrading to 8.0.30. Deprecated. |
+| innodb_log_files_in_group | 2   | RestartApply | Number of log files before upgrading to 8.0.30. Deprecated. |
+| innodb_redo_log_capacity | 1.05E+08 | RestartApply | Limitation for total size of redo log files on disk (expressed in bytes). |
+| innodb_log_write_ahead_size | 8192 | RestartApply | Log write ahead unit size to avoid read-on-write, it should match the OS cache block IO size. |
+| innodb_log_group_home_dir |     | RestartApply | Path to InnoDB log files. |
+| innodb_log_writer_threads | ON  | RestartApply | Whether the log writer threads should be activated (ON), or write/flush of the redo log should be done by each thread individually (OFF). |
+| innodb_log_spin_cpu_abs_lwm | 80  | RestartApply | Minimum value of cpu time for which spin-delay is used. Expressed in percentage of single cpu core. |
+| innodb_log_spin_cpu_pct_hwm | 50  | RestartApply | Maximum value of cpu time for which spin-delay is used. Expressed in percentage of all cpu cores. |
+| innodb_log_wait_for_flush_spin_hwm | 400 | RestartApply | Maximum value of average log flush time for which spin-delay is used. When flushing takes longer, user threads no longer spin when waiting forflushed redo. Expressed in microseconds. |
+| innodb_log_compressed_pages | ON  | RestartApply | Enables/disables the logging of entire compressed page images. InnoDB logs the compressed pages to prevent corruption if the zlib compression algorithm changes. When turned OFF, InnoDB will assume that the zlib compression algorithm doesn't change. |
+| innodb_max_dirty_pages_pct | 90  | RestartApply | Percentage of dirty pages allowed in bufferpool. |
+| innodb_max_dirty_pages_pct_lwm | 10  | RestartApply | Percentage of dirty pages at which flushing kicks in. |
+| innodb_adaptive_flushing_lwm | 10  | RestartApply | Percentage of log capacity below which no adaptive flushing happens. |
+| innodb_adaptive_flushing | ON  | RestartApply | Attempt flushing dirty pages to avoid IO bursts at checkpoints. |
+| innodb_flush_sync | ON  | RestartApply | Allow IO bursts at the checkpoints ignoring io_capacity setting. |
+| innodb_flushing_avg_loops | 30  | RestartApply | Number of iterations over which the background flushing is averaged. |
+| innodb_max_purge_lag | 0   | RestartApply | Desired maximum length of the purge queue (0 = no limit) |
+| innodb_max_purge_lag_delay | 0   | RestartApply | Maximum delay of user threads in micro-seconds |
+| innodb_old_blocks_pct | 37  | RestartApply | Percentage of the buffer pool to reserve for 'old' blocks. |
+| innodb_old_blocks_time | 1000 | RestartApply | Move blocks to the 'new' end of the buffer pool if the first access was at least this many milliseconds ago. The timeout is disabled if 0. |
+| innodb_open_files | 0   | RestartApply | How many files at the maximum InnoDB keeps open at the same time. |
+| innodb_optimize_fulltext_only | OFF | RestartApply | Only optimize the Fulltext index of the table |
+| innodb_rollback_on_timeout | OFF | RestartApply | Roll back the complete transaction on lock wait timeout, for 4.x compatibility (disabled by default) |
+| innodb_ft_aux_table |     | RestartApply | FTS internal auxiliary table to be checked |
+| innodb_ft_enable_diag_print | OFF | RestartApply | Whether to enable additional FTS diagnostic printout|
+| innodb_ft_server_stopword_table |     | RestartApply | The user supplied stopword table name. |
+| innodb_ft_user_stopword_table |     | RestartApply | User supplied stopword table name, effective in the session level. |
+| innodb_disable_sort_file_cache | OFF | RestartApply | Whether to disable OS system file cache for sort I/O |
+| innodb_stats_on_metadata | OFF | RestartApply | Enable statistics gathering for metadata commands such as SHOW TABLE STATUS for tables that use transient statistics (off by default) |
+| innodb_stats_transient_sample_pages | 8   | RestartApply | The number of leaf index pages to sample when calculating transient statistics (if persistent statistics are not used, default 8) |
+| innodb_stats_persistent | ON  | RestartApply | InnoDB persistent statistics enabled for all tables unless overridden at table level |
+| innodb_stats_persistent_sample_pages | 20  | RestartApply | The number of leaf index pages to sample when calculating persistent statistics (by ANALYZE, default 20) |
+| innodb_stats_auto_recalc | ON  | RestartApply | InnoDB automatic recalculation of persistent statistics enabled for all tables unless overridden at table level (automatic recalculation is only done when InnoDB decides that the table has changed too much and needs a new statistics) |
+| innodb_adaptive_hash_index | ON  | RestartApply | Enable InnoDB adaptive hash index (enabled by default).Disable with --skip-innodb-adaptive-hash-index. |
+| innodb_adaptive_hash_index_parts | 8   | RestartApply | Number of InnoDB Adaptive Hash Index Partitions. (default = 8).|
+| innodb_stats_method | nulls_equal | RestartApply | Specifies how InnoDB index statistics collection code should treat NULLs. Possible values are NULLS_EQUAL (default), NULLS_UNEQUAL and NULLS_IGNORED |
+| innodb_replication_delay | 0   | RestartApply | Replication thread delay (ms) on the slave server if innodb_thread_concurrency is reached (0 by default) |
+| innodb_status_file | OFF | RestartApply | Enable SHOW ENGINE INNODB STATUS output in the innodb_status.`pid` file |
+| innodb_strict_mode | ON  | RestartApply | Use strict mode when evaluating create options. |
+| innodb_sort_buffer_size | 1048576 | RestartApply | Memory buffer size for index creation |
+| innodb_online_alter_log_max_size | 1.34E+08 | RestartApply | Maximum modification log file size for online index creation |
+| innodb_directories |     | RestartApply | List of directories 'dir1;dir2;..;dirN' to scan for tablespace files. Default is to scan 'innodb-data-home-dir;innodb-undo-directory;datadir' |
+| innodb_sync_spin_loops | 30  | RestartApply | Count of spin-loop rounds in InnoDB mutexes (30 by default) |
+| innodb_spin_wait_delay | 6   | RestartApply | Maximum delay between polling for a spin lock (6 by default) |
+| innodb_spin_wait_pause_multiplier | 50  | RestartApply | Controls how many times in a row to use a PAUSE instruction to achieve one unit of delay in a spin lock (see @@innodb_spin_wait_delay), defaults to 50 |
+| innodb_fsync_threshold | 0   | RestartApply | The value of this variable determines how often InnoDB calls fsync when creating a new file. Default is zero which would make InnoDB flush the entire file at once before closing it. |
+| innodb_table_locks | ON  | RestartApply | Enable InnoDB locking in LOCK TABLES |
+| innodb_thread_concurrency | 0   | RestartApply | Helps in performance tuning in heavily concurrent environments. Sets the maximum number of threads allowed inside InnoDB. Value 0 will disable the thread throttling. |
+| innodb_adaptive_max_sleep_delay | 150000 | RestartApply | The upper limit of the sleep delay in usec. Value of 0 disables it. |
+| innodb_thread_sleep_delay | 10000 | RestartApply | Time of innodb thread sleeping before joining InnoDB queue (usec). Value 0 disable a sleep |
+| innodb_tmpdir |     | RestartApply | Directory for temporary non-tablespace files. |
+| innodb_autoinc_lock_mode | 2   | RestartApply | The AUTOINC lock modes supported by InnoDB: 0 => Old style AUTOINC locking (for backward compatibility); 1 => New style AUTOINC locking; 2 => No AUTOINC locking (unsafe for SBR) |
+| innodb_use_native_aio | ON  | RestartApply | Use native AIO if supported on this platform. |
+| innodb_change_buffering | all | RestartApply | Buffer changes to reduce random access: OFF, ON, inserting, deleting, changing, or purging. |
+| innodb_change_buffer_max_size | 25  | RestartApply | Maximum on-disk size of change buffer in terms of percentage of the buffer pool. |
+| innodb_change_buffering_debug | 0   | RestartApply | Debug flags for InnoDB change buffering (0=none, 2=crash at merge) |
+| innodb_disable_background_merge | OFF | RestartApply | Disable change buffering merges by the master thread |
+| innodb_random_read_ahead | OFF | RestartApply | Whether to use read ahead for random access within an extent. |
+| innodb_read_ahead_threshold | 56  | RestartApply | Number of pages that must be accessed sequentially for InnoDB to trigger a readahead. |
+| innodb_read_only | OFF | RestartApply | Start InnoDB in read only mode (off by default) |
+| innodb_io_capacity | 200 | RestartApply | Number of IOPs the server can do. Tunes the background IO rate |
+| innodb_io_capacity_max | 4.29E+09 | RestartApply | Limit to which innodb_io_capacity can be inflated. |
+| innodb_idle_flush_pct | 100 | RestartApply | Up to what percentage of dirty pages to be flushed when server is found idle. |
+| innodb_page_cleaners | 4   | RestartApply | Page cleaner threads can be from 1 to 64. Default is 4. |
+| innodb_monitor_enable |     | RestartApply | Turn on a monitor counter |
+| innodb_monitor_disable |     | RestartApply | Turn off a monitor counter |
+| innodb_monitor_reset |     | RestartApply | Reset a monitor counter |
+| innodb_monitor_reset_all |     | RestartApply | Reset all values for a monitor counter |
+| innodb_purge_threads | 4   | RestartApply | Purge threads can be from 1 to 32. Default is 4. |
+| innodb_purge_batch_size | 300 | RestartApply | Number of UNDO log pages to purge in one batch from the history list. |
+| innodb_background_drop_list_empty | OFF | RestartApply | Wait for the background drop list to become empty |
+| innodb_purge_run_now | OFF | RestartApply | Set purge state to RUN |
+| innodb_purge_stop_now | OFF | RestartApply | Set purge state to STOP |
+| innodb_log_flush_now | OFF | RestartApply | Force flush of redo up to current lsn |
+| innodb_log_checkpoint_now | OFF | RestartApply | Force sharp checkpoint now |
+| innodb_log_checkpoint_fuzzy_now | OFF | RestartApply | Force fuzzy checkpoint now |
+| innodb_checkpoint_disabled | OFF | RestartApply | Disable checkpoints |
+| innodb_buf_flush_list_now | OFF | RestartApply | Force dirty page flush now |
+| innodb_merge_threshold_set_all_debug | 50  | RestartApply | Override current MERGE_THRESHOLD setting for all indexes at dictionary cache by the specified value dynamically, at the time. |
+| innodb_semaphore_wait_timeout_debug | 600 | RestartApply | Number of seconds that a semaphore can be held. If semaphore wait crossesthis value, server will crash |
+| innodb_page_hash_locks | 16  | RestartApply | Number of rw_locks protecting buffer pool page_hash. Rounded up to the next power of 2 |
+| innodb_validate_tablespace_paths | ON  | RestartApply | Enable validation of tablespace paths against the DD. (enabled by default). Disable with --skip-innodb-validate-tablespace-paths. |
+| innodb_use_fdatasync | OFF | RestartApply | Use fdatasync() instead of the default fsync(). |
+| innodb_status_output | OFF | RestartApply | Enable InnoDB monitor output to the error log. |
+| innodb_status_output_locks | OFF | RestartApply | Enable InnoDB lock monitor output to the error log. Requires innodb_status_output=ON. |
+| innodb_print_all_deadlocks | OFF | RestartApply | Print all deadlocks to MySQL error log (off by default) |
+| innodb_cmp_per_index_enabled | OFF | RestartApply | Enable INFORMATION_SCHEMA.innodb_cmp_per_index, may have negative impact on performance (off by default) |
+| innodb_max_undo_log_size | 1.07E+09 | RestartApply | Maximum size of an UNDO tablespace in MB (If an UNDO tablespace grows beyond this size it will be truncated in due course).|
+| innodb_purge_rseg_truncate_frequency | 128 | RestartApply | Dictates rate at which UNDO records are purged. Value N means purge rollback segment(s) on every Nth iteration of purge invocation |
+| innodb_undo_log_truncate | ON  | RestartApply | Enable or Disable Truncate of UNDO tablespace. |
+| innodb_undo_log_encrypt | OFF | RestartApply | Enable or disable Encrypt of UNDO tablespace. |
+| innodb_rollback_segments | 128 | RestartApply | Number of rollback segments per tablespace. This applies to the system tablespace, the temporary tablespace & any undo tablespace. |
+| innodb_undo_directory |     | Unsupported | Directory where undo tablespace files live, this path can be absolute. |
+| innodb_temp_tablespaces_dir |     | RestartApply | Directory where temp tablespace files live, this path can be absolute. |
+| innodb_sync_array_size | 1   | RestartApply | Size of the mutex/lock wait array. |
+| innodb_compression_failure_threshold_pct | 5   | RestartApply | If the compression failure rate of a table is greater than this number more padding is added to the pages to reduce the failures. A value of zero implies no padding |
+| innodb_compression_pad_pct_max | 50  | RestartApply | Percentage of empty space on a data page that can be reserved to make the page compressible. |
+| innodb_default_row_format | dynamic | RestartApply | The default ROW FORMAT for all innodb tables created without explicit ROW_FORMAT. Possible values are REDUNDANT, COMPACT, and DYNAMIC. The ROW_FORMAT value COMPRESSED is not allowed |
+| innodb_redo_log_archive_dirs |     | RestartApply | Limit the location of the redo log archive to the semicolon separated list of labeled directories |
+| innodb_redo_log_encrypt | OFF | RestartApply | Enable or disable Encryption of REDO tablespace. |
+| innodb_print_ddl_logs | OFF | RestartApply | Print all DDl logs to MySQL error log (off by default) |
+| innodb_trx_rseg_n_slots_debug | 0   | RestartApply | Debug flags for InnoDB to limit TRX_RSEG_N_SLOTS for trx_rsegf_undo_find_free() |
+| innodb_limit_optimistic_insert_debug | 0   | RestartApply | Artificially limit the number of records per B-tree page (0=unlimited). |
+| innodb_trx_purge_view_update_only_debug | OFF | RestartApply | Pause actual purging any delete-marked records, but merely update the purge view. It is to create artificially the situation the purge view have been updated but the each purges were not done yet. |
+| innodb_fil_make_page_dirty_debug | 4.29E+09 | RestartApply | Make the first page of the given tablespace dirty. |
+| innodb_saved_page_number_debug | 0   | RestartApply | An InnoDB page number. |
+| innodb_compress_debug | none | RestartApply | Compress all tables, without specifying the COMPRESS table attribute |
+| innodb_page_cleaner_disabled_debug | OFF | RestartApply | Disable page cleaner |
+| innodb_dict_stats_disabled_debug | OFF | RestartApply | Disable dict_stats thread |
+| innodb_master_thread_disabled_debug | OFF | RestartApply | Disable master thread |
+| innodb_sync_debug | OFF | RestartApply | Enable the sync debug checks |
+| innodb_buffer_pool_debug | OFF | RestartApply | Enable buffer pool debug |
+| innodb_ddl_log_crash_reset_debug | OFF | RestartApply | Reset all crash injection counters to 1 |
+| innodb_interpreter |     | RestartApply | Invoke InnoDB test interpreter with commands to be executed. |
+| innodb_interpreter_output |     | RestartApply | Output from InnoDB testing module (ut0test). |
+| innodb_parallel_read_threads | 4   | RestartApply | Number of threads to do parallel read. |
+| innodb_segment_reserve_factor | 12.5 | RestartApply | The segment_reserve_factor is the ratio x/y expressed in percentage, where x is the number of free pages in the segment, and y is the total number of pages in the segment.The number of used pages in the segment is given by (y-x). The number of free pages in the segment (x) will be maintained such that the actual segment_reserve_factor will be >= the requested segment_reserve_factor, which is contained in this variable. |
+| myisam_block_size | 1024 | RestartApply | Block size to be used for MyISAM index pages |
+| myisam_data_pointer_size | 6   | RestartApply | Default pointer size to be used for MyISAM tables |
+| myisam_max_sort_file_size | 9.22E+18 | RestartApply | Don't use the fast sort index method to created index if the temporary file would get bigger than this |
+| myisam_recover_options |     | RestartApply | Syntax: myisam-recover-options\[=option\[,option...\]\], where option can be DEFAULT, BACKUP, FORCE, QUICK, or OFF |
+| myisam_sort_buffer_size | 8388608 | RestartApply | The buffer that is allocated when sorting the index when doing a REPAIR or when creating indexes with CREATE INDEX or ALTER TABLE |
+| myisam_use_mmap | OFF | RestartApply | Use memory mapping for reading and writing MyISAM tables |
+| myisam_mmap_size | 1.84E+19 | RestartApply | Restricts the total memory used for memory mapping of MySQL tables |
+| myisam_stats_method | nulls_unequal | RestartApply | Specifies how MyISAM index statistics collection code should treat NULLs. Possible values of name are NULLS_UNEQUAL (default behavior for 4.1 and later), NULLS_EQUAL (emulate 4.0 behavior), and NULLS_IGNORED |
+| archive | ON  | RestartApply | Enable or disable ARCHIVE plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| blackhole | ON  | RestartApply | Enable or disable BLACKHOLE plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| federated | OFF | RestartApply | Enable or disable FEDERATED plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| ndbcluster | OFF | RestartApply | Enable or disable ndbcluster plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| ndb_extra_logging | 1   | RestartApply | Turn on more logging in the error log. |
+| ndb_wait_connected | 120 | RestartApply | Time (in seconds) to wait for connection to cluster. |
+| ndb_wait_setup | 120 | RestartApply | Time (in seconds) to wait for setup to complete (0 = no wait) |
+| ndb_cluster_connection_pool | 1   | RestartApply | Pool of cluster connections to be used by mysql server. |
+| ndb_cluster_connection_pool_nodeids |     | RestartApply | Comma separated list of nodeids to use for the cluster connection pool. Overrides node id specified in --ndb-connectstring. First nodeid must be equal to --ndb-nodeid(if specified). |
+| ndb_recv_thread_activation_threshold | 8   | RestartApply | Activation threshold when receive thread takes over the polling of the cluster connection (measured in concurrently active threads) |
+| ndb_recv_thread_cpu_mask |     | RestartApply | CPU mask for locking receiver threads to specific CPU, specifiedas hexadecimal as e.g. 0x33, one CPU is used per receiver thread. |
+| ndb_report_thresh_binlog_mem_usage | 10  | RestartApply | Threshold on percentage of free memory before reporting binlog status. E.g. 10 means that if amount of available memory for receiving binlog data from the storage nodes goes below 10%, a status message will be sent to the cluster log. |
+| ndb_report_thresh_binlog_epoch_slip | 10  | RestartApply | Threshold for Binlog injector thread consumption lag, before reporting the Event buffer status' message with reason BUFFERED_EPOCHS_OVER_THRESHOLD. The lag is defined as the number of epochs completely buffered in the event buffer, but not consumed by the Binlog injector thread yet. |
+| ndb_eventbuffer_max_alloc | 0   | RestartApply | Maximum amount of memory (in bytes) that can be allocated for buffering events by the NdbApi. |
+| ndb_eventbuffer_free_percent | 20  | RestartApply | Percentage of free memory that should be available in event buffer before resuming buffering after the max_alloc limit is hit. |
+| ndb_log_update_as_write | ON  | RestartApply | For efficiency log only after image as a write event. Ignore before image. This may cause compatibility problems if replicating to other storage engines than ndbcluster. |
+| ndb_log_updated_only | ON  | RestartApply | For efficiency log only updated columns. Columns are considered as updated" even if they are updated with the same value. This may cause compatibility problems if replicating to other storage engines than ndbcluster." |
+| ndb_log_update_minimal | OFF | RestartApply | For efficiency, log updates in a minimal formatLog only the primary key value(s) in the before image. Log only the changed columns in the after image. This may cause compatibility problems if replicating to other storage engines than ndbcluster. |
+| ndb_log_empty_update | OFF | RestartApply | Normally empty updates are filtered away before they are logged. However, for read tracking in conflict resolution a hidden pesudo attribute is set which will result in an empty update along with special flags set. For this to work empty updates have to be allowed. |
+| ndb_log_orig | OFF | RestartApply | Log originating server id and epoch in ndb_binlog_index. Each epoch may in this case have multiple rows in ndb_binlog_index, one for each originating epoch. |
+| ndb_distribution | KEYHASH | RestartApply | Default distribution for new tables in NDB |
+| ndb_autoincrement_prefetch_sz | 512 | RestartApply | Specify number of autoincrement values that are prefetched. |
+| ndb_force_send | ON  | RestartApply | Force send of buffers to ndb immediately without waiting for other threads. |
+| ndb_use_exact_count | OFF | RestartApply | Use exact records count during query planning and for fast select count(\*), disable for faster queries. |
+| ndb_use_transactions | ON  | RestartApply | Use transactions for large inserts, if enabled then large inserts will be split into several smaller transactions |
+| ndb_use_copying_alter_table | OFF | RestartApply | Force ndbcluster to always copy tables at alter table (should only be used if online alter table fails). |
+| ndb_allow_copying_alter_table | ON  | RestartApply | Specifies if implicit copying alter table is allowed. Can be overridden by using ALGORITHM=COPY in the alter table command. |
+| ndb_optimized_node_selection | 3   | RestartApply | Select nodes for transactions in a more optimal way. |
+| ndb_batch_size | 32768 | RestartApply | Batch size in bytes. |
+| ndb_replica_batch_size | 2097152 | RestartApply | Batch size in bytes for the replica applier. |
+| ndb_optimization_delay | 10  | RestartApply | For optimize table, specifies the delay in milliseconds for each batch of rows sent. |
+| ndb_index_stat_enable | ON  | RestartApply | Use ndb index statistics in query optimization. |
+| ndb_index_stat_option |     | RestartApply | Comma-separated tunable options for ndb index statistics |
+| ndb_log_bin | OFF | RestartApply | Log ndb tables in the binary log. Option only has meaning if the binary log has been turned on for the server. |
+| ndb_log_binlog_index | ON  | RestartApply | Insert mapping between epochs and binlog positions into the ndb_binlog_index table. |
+| ndb_log_apply_status | OFF | RestartApply | Log ndb_apply_status updates from Master in the Binlog |
+| ndb_log_transaction_id | OFF | RestartApply | Log Ndb transaction identities per row in the Binlog |
+| ndb_log_transaction_compression | OFF | RestartApply | Compress the Ndb Binlog |
+| ndb_log_transaction_compression_level_zstd | 3   | RestartApply | Compression level for ZSTD transaction compression in the NDB Binlog. |
+| ndb_log_fail_terminate | OFF | RestartApply | Terminate mysqld if complete logging of all found row events is not possible |
+| ndb_clear_apply_status | ON  | RestartApply | Whether RESET REPLICA will clear all entries in ndb_apply_status |
+| ndb_schema_dist_upgrade_allowed | ON  | RestartApply | Allow schema distribution table upgrade when connecting to NDB. Use this variable to defer this change until all MySQL Servers connected to the cluster have been upgrade to same version. NOTE! The schema distribution functionality might be slightly degraded until the change has been performed. |
+| ndb_schema_dist_timeout | 120 | RestartApply | Controls how many seconds it takes before timeout is detected during schema distribution. Timeout might indicate that activity on the other MySQL Server(s) are high or are somehow prevented from acquiring the necessary resources at this time. |
+| ndb_schema_dist_lock_wait_timeout | 30  | RestartApply | Time (in seconds) during schema distribution to wait for a lock before returning an error. This setting allows avoiding that the binlog injector thread waits too long while handling schema operations. |
+| ndb_connectstring |     | RestartApply | Connect string for ndbcluster. |
+| ndb_mgmd_host |     | RestartApply | Same as --ndb-connectstring |
+| ndb_nodeid | 0   | RestartApply | Set nodeid for this node. Overrides node id specified in --ndb-connectstring. |
+| ndb_blob_read_batch_bytes | 65536 | RestartApply | Specifies the bytesize large Blob reads should be batched into.0 == No limit. |
+| ndb_blob_write_batch_bytes | 65536 | RestartApply | Specifies the bytesize large Blob writes should be batched into.0 == No limit. |
+| ndb_replica_blob_write_batch_bytes | 2097152 | RestartApply | Specifies the byte size of batched blob writes for the replica applier. 0 == No limit. |
+| ndb_deferred_constraints | 0   | RestartApply | Specified that constraints should be checked deferred (when supported) |
+| ndb_join_pushdown | ON  | RestartApply | Enable pushing down of join to datanodes |
+| ndb_log_exclusive_reads | OFF | RestartApply | Log primary key reads with exclusive locks to allow conflict resolution based on read conflicts |
+| ndb_read_backup | ON  | RestartApply | Create tables with Read Backup flag set. Enables those tables to be read from backup replicas as well as from primary replicas. Delays commit acknowledge of write transactions to accomplish this. |
+| ndb_data_node_neighbour | 0   | RestartApply | My closest data node, if 0 no closest neighbour, used to select an appropriate data node to contact to run a transaction at. |
+| ndb_fully_replicated | OFF | RestartApply | Create tables that are fully replicated by default. This enables reading from any data node when using ReadCommitted. This is great for read scalability but hampers write scalability |
+| ndb_row_checksum | 1   | RestartApply | Create tables with a row checksum, this checks for HW issues at theexpense of performance |
+| ndb_dbg_check_shares | 0   | RestartApply | Debug, only...check that no shares are lingering... |
+| ndb_show_foreign_key_mock_tables | OFF | RestartApply | Show the mock tables which is used to support foreign_key_checks= 0. Extra info warnings are shown when creating and dropping the tables. The real table name is show in SHOW CREATE TABLE |
+| ndb_slave_conflict_role | NONE | RestartApply | Role for applier to play in asymmetric conflict algorithms. This variable is deprecated and will be removed in a future release. Use ndb_applier_conflict_role instead |
+| ndb_applier_conflict_role | NONE | RestartApply | Role for applier to play in asymmetric conflict algorithms. |
+| ndb_default_column_format | FIXED | RestartApply | Change COLUMN_FORMAT default value (fixed or dynamic) for backward compatibility. Also affects the default value of ROW_FORMAT. |
+| ndb_metadata_check | ON  | RestartApply | Enable the automatic detection of NDB metadata changes to be synchronized with the DD |
+| ndb_metadata_check_interval | 60  | RestartApply | Interval of time (in seconds) at which a check is done to see if there are NDB metadata changes to be synchronized |
+| ndb_metadata_sync | OFF | RestartApply | Triggers immediate synchronization of all changes between NDB Dictionary and MySQL server. Setting this option results in the values of ndb_metadata_check and ndb_metadata_check_interval being ignored. Automatically resets to false when the synchronization has completed |
+| ndb_applier_allow_skip_epoch | OFF | RestartApply | Should replication applier be allowed to skip epochs |
+| ndbinfo | OFF | RestartApply | Enable or disable ndbinfo plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| ndbinfo_max_rows | 10  | RestartApply | Specify max number of rows to fetch per roundtrip to cluster |
+| ndbinfo_max_bytes | 0   | RestartApply | Specify approx. max number of bytes to fetch per roundtrip to cluster |
+| ndbinfo_show_hidden | OFF | RestartApply | Control if tables should be visible or not |
+| ndb_transid_mysql_connection_map | OFF | RestartApply | Enable or disable ndb_transid_mysql_connection_map plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| ngram | ON  | RestartApply | Enable or disable ngram plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| ngram_token_size | 2   | RestartApply | InnoDB ngram full text plugin parser token size in characters |
+| mysqlx_cache_cleaner | ON  | RestartApply | Enable or disable mysqlx_cache_cleaner plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| mysqlx | ON  | RestartApply | Enable or disable mysqlx plugin. Possible values are ON, OFF, FORCE (don't start if the plugin fails to load). |
+| mysqlx_port | 33060 | RestartApply | Port on which X Plugin is going to accept incoming connections. |
+| mysqlx_max_connections | 100 | RestartApply | Maximum number of concurrent X protocol connections. Actual number of connections is also affected by the general max_connections. |
+| mysqlx_min_worker_threads | 2   | RestartApply | Minimal number of worker threads. |
+| mysqlx_idle_worker_thread_timeout | 60  | RestartApply | Time after which an idle worker thread is terminated (in seconds). |
+| mysqlx_max_allowed_packet | 67108864 | RestartApply | Size of largest message that client is going to handle. |
+| mysqlx_connect_timeout | 30  | RestartApply | Maximum allowed waiting time for connection to setup a session (in seconds). |
+| mysqlx_ssl_key |     | RestartApply | X509 key in PEM format. |
+| mysqlx_ssl_ca |     | RestartApply | CA file in PEM format. |
+| mysqlx_ssl_capath |     | RestartApply | CA directory. |
+| mysqlx_ssl_cert |     | RestartApply | X509 cert in PEM format. |
+| mysqlx_ssl_cipher |     | RestartApply | SSL cipher to use. |
+| mysqlx_ssl_crl |     | RestartApply | Certificate revocation list. |
+| mysqlx_ssl_crlpath |     | RestartApply | Certificate revocation list path. |
+| mysqlx_socket |     | RestartApply | X Plugin's unix socket for local connection. |
+| mysqlx_bind_address |     | RestartApply | Address to which X Plugin should bind the TCP socket optionally followed by a network namespace delimited with /. E.g., the string value 127.0.0.1/red specifies to listen on IP address 127.0.0.1 from the network namespace 'red'. |
+| mysqlx_port_open_timeout | 0   | RestartApply | How long X Plugin is going to retry binding of server socket (in case of failure) |
+| mysqlx_wait_timeout | 28800 | RestartApply | Number or seconds that X Plugin must wait for activity on noninteractive connection |
+| mysqlx_interactive_timeout | 28800 | RestartApply | Default value for mysqlx_wait_timeout" |
+| mysqlx_read_timeout | 30  | RestartApply | Number or seconds that X Plugin must wait for blocking read operation to complete |
+| mysqlx_write_timeout | 60  | RestartApply | Number or seconds that X Plugin must wait for blocking write operation to complete |
+| mysqlx_document_id_unique_prefix | 0   | RestartApply | Unique prefix is a value assigned by InnoDB cluster to the instance, which is meant to make document id unique across all replicasets from the same cluster |
+| mysqlx_enable_hello_notice | ON  | RestartApply | Hello notice is a X Protocol message send by the server after connection establishment, using this variable it can be disabled |
+| mysqlx_compression_algorithms | ZSTD_STREAM | RestartApply | Compression algorithms: where option can be DEFLATE_STREAM, LZ4_MESSAGE, ZSTD_STREAM |
+| mysqlx_deflate_default_compression_level | 3   | RestartApply | Default value of compression level for deflate algorithm |
+| mysqlx_lz4_default_compression_level | 2   | RestartApply | Default value of compression level for lz4 algorithm |
+| mysqlx_zstd_default_compression_level | 3   | RestartApply | Default value of compression level for zstd algorithm |
+| mysqlx_deflate_max_client_compression_level | 5   | RestartApply | Max value of compression level for deflate algorithm |
+| mysqlx_lz4_max_client_compression_level | 8   | RestartApply | Max value of compression level for lz4 algorithm |
+| mysqlx_zstd_max_client_compression_level | 11  | RestartApply | Max value of compression level for zstd algorithm |
+| skip_external_locking | OFF | RestartApply | Disable external locking (disabling is recommended) |
+| loose_group_replication_flow_control_certifier_threshold | 25000 | RestartApply | The maximum number of transactions to process before releasing the certification lock |
+| loose_group_replication_transaction_size_limit | 1.07E+09 | RestartApply | The maximum size of transactions that can be replicated in group replication |
+| loose_group_replication_flow_control_applier_threshold | 25000 | RestartApply | The maximum number of transactions to apply before releasing the flow control lock |
+| loose_group_replication_communication_max_message_size | 1.07E+09 |     | The maximum size of messages that can be sent or received in group replication |
+| loose_group_replication_paxos_single_leader | OFF | StartupApply | It enables the group communication engine to operate with a single consensus leader when the group is in single-primary mode.|
+| loose_group_replication_message_cache_size | 1.07E+09 | RestartApply | sets the maximum amount of memory that is available for the message cache in the group communication engine for Group Replication (XCom). |
