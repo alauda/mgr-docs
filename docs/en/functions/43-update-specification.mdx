@@ -16,7 +16,7 @@ It is important to expand storage in a timely manner before reaching the storage
 
 <Tabs>
   <Tab label="CLI">
-    To change the instance specifications, you can control it through the field `spec.mgr.resources` (refer to the [API documentation](../../apis/kubernetes_apis/mgr/mysql-mgr) for details).
+    To change the instance specifications, you can control it through the field `spec.mgr.resources` (refer to the [API documentation](../../apis/kubernetes_apis/mgr/01-mysql-mgr) for details).
 
     ```bash
     kubectl -n ${namespace} patch mysql ${instance_name} --type=merge --patch='{"spec":{"mgr": {"resources":{"server":{"limits":{"cpu": "4","memory":"8Gi"},"requests":{"cpu":"4", "memory":"8Gi"}}}}}}'
