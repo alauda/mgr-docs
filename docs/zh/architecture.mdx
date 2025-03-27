@@ -15,9 +15,9 @@ weight: 40
 
 ### 核心组件
 
-- 以 StatefulSet 方式部署管理 MGR 的 MySQL 成员, 通过 Group Replication 实现多主复制和高可用
-- 以 Deployment 方式部署管理 MySQL Router, 对内连接 StatefulSet 中的 MySQL 成员, 对外提供读写分离服务能力
-- 以 PVC 方式管理 MySQL 数据存储, 保证数据持久化
+- 以 StatefulSet 方式部署管理 MGR 的 MySQL 成员，通过 Group Replication 实现多主复制和高可用
+- 以 Deployment 方式部署管理 MySQL Router，对内连接 StatefulSet 中的 MySQL 成员，对外提供读写分离服务能力
+- 以 PVC 方式管理 MySQL 数据存储，保证数据持久化
 - 以 read-write 和 read-only 两个不同 Service 提供读写分离服务
 
 ### 数据流程

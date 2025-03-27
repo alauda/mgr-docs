@@ -15,7 +15,7 @@ weight: 10
 
 <Tabs>
 <Tab label="CLI">
-1. 获取 Service 名称: 根据实例名称, 对应的 Service 名称为 `${name}-read-write` 和 `${name}-read-only`
+1. 获取 Service 名称: 根据实例名称，对应的 Service 名称为 `${name}-read-write` 和 `${name}-read-only`
 2. 使用 MySQL Client 连接
 以访问读写服务为例：
 ```bash
@@ -32,7 +32,7 @@ SHOW VARIABLES LIKE 'read_only';
 2. 选择访问方式：
 - 集群内访问：读写或只读内部路由: 格式为`${实例名称}-read-write` 和 `${实例名称}-read-only`
 3. 获取账号密码
-4. 使用集群外或终端控制台 MySQL 客户端工具连接, 以访问读写服务为例：
+4. 使用集群外或终端控制台 MySQL 客户端工具连接，以访问读写服务为例：
 ```bash
 mysql -h${name}-read-write.${namespace} -P3306 -u${username} -p${password}
 ```

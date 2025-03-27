@@ -9,7 +9,7 @@ sourceSHA: 63531402f3ae646188457181f6befd9cf7517b8a598a9d8f59b6645b497315be
 
 Provides complete user lifecycle management, including creation, permission assignment, password modification, and deletion operations.
 
-## Operation Steps
+## Procedure
 
 <Tabs>
   <Tab label="CLI">
@@ -24,7 +24,7 @@ Provides complete user lifecycle management, including creation, permission assi
 
     ::: info
 
-    - `${instance_name}` is the desired instance name for the user to be created
+    - `${instance_name}` is the desired MySQL-MGR instance name for the user to be created
     - `${namespace}` is the namespace to which the instance belongs
     - `${username}` is the desired username to be created
     - `${password}` is the desired password to be set
@@ -34,18 +34,18 @@ Provides complete user lifecycle management, including creation, permission assi
     2. Create User Management CR
 
     ```bash
-    kubectl apply -n $namespace -f - <<EOF
+    kubectl apply -n ${namespace} -f - <<EOF
     apiVersion: middleware.alauda.io/v1
     kind: MysqlUser
     metadata:
       labels:
         mgr/cluster: mgr
         mysql/arch: mgr
-      name: mgr-dev
-      namespace: tsl-x
+      name: ${name}
+      namespace: ${namespace}
     spec:
       host: '%'
-      mysql: mgr
+      mysql: ${instance_name}
       privileges:
         - grants:
             - SELECT
@@ -67,11 +67,20 @@ Provides complete user lifecycle management, including creation, permission assi
             - EVENT
             - TRIGGER
           targets:
-            - dev
-      secretName: mgr-dev
-      user: dev
+            - ${database}.*
+      secretName: ${secret_name}
+      user: ${username}
     EOF
     ```
+    ::: info
+
+    - `${instance_name}` is the desired MySQL-MGR instance name for the user to be created
+    - `${namespace}` is the namespace to which the instance belongs
+    - `${username}` is the desired username to be created
+    - `${secret_name}` is the secret name for carrying the password
+    - `${database}` is the desired database name for the user to be created
+
+    :::
 
     3. Log in to MySQL using the corresponding user
     4. Check user permissions, example for user dev:

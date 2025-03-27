@@ -9,17 +9,17 @@ Alauda Database for MySQL-MGR is a high availability database solution based on 
 
 ## Core Advantages
 
-- **High Availability**: Provides multi-master replication and high availability based on MySQL Group Replication
-- **Automated Management**: Automatically manages MySQL clusters via Operator
-- **Elastic Scalability**: Supports online scaling up and down
-- **Data Consistency**: Ensures strong data consistency based on the Paxos protocol
-- **Read-Write Splitting**: Supports read-write splitting through MySQL Router
+- **High Availability**: Cluster architecture based on MySQL Group Replication, implementing multi-node data automatic synchronization and fault self-healing, with automatic switchover during primary node failure, reducing service interruption risks.
+- **Data Consistency**: Distributed authentication based on group replication technology, ensuring data consistency.
+- **Automated Management**: Implementing full lifecycle management of cluster deployment, configuration updates, backup recovery, etc., through Operator, systematically reducing operational costs.
+- **Elastic Scaling**: Supporting online addition or removal of nodes, automatic global transaction state synchronization, adapting to dynamic business load changes.
+- **Read-Write Separation**: Supporting read-write separation through MySQL Router
 
 ## Application Scenarios
 
-- Mission-critical databases requiring high availability
-- Distributed database scenarios requiring multi-master writes
-- Cloud-native databases requiring elastic scalability
+- Critical business databases requiring high availability
+- Distributed database scenarios demanding strong data consistency
+- Cloud-native databases needing elastic scalability
 
 ## Usage Limitations
 
@@ -33,3 +33,5 @@ Alauda Database for MySQL-MGR is a high availability database solution based on 
 - Concurrent DDL and DML Conflicts: In multi-master mode, DDL and DML operations may cause conflicts; it is recommended to avoid concurrent DDL and DML operations.
 - Transaction Size Limitations: Ensure that the transaction size is within the group_replication_transaction_size_limit range (default approximately 143 MB) and can be completed within the group_replication_member_expel_timeout period (default 5s).
 - Heterogeneous Architecture Limitations: Due to limitations of the MySQL Clone plugin, heterogeneous scenarios are currently not supported.
+- Rolling Update Limitations: MySQL Pods will prioritize restarting secondary members first, with the primary member restarted last. This process may cause brief connection interruptions, requiring application-level retry mechanisms.
+
