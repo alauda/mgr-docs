@@ -6,12 +6,8 @@ sourceSHA: be3a4ee0d358453b68a957db2dd805ce1f913ff56818f9dca4fde260003cfaf2
 # Access Methods
 
 ## Function Overview
-
-Provides various access methods for MySQL-MGR clusters, supporting both internal and external access, as well as read/write splitting configurations.
-
-## Core Components
-
-- **MySQL Router**: Provides read/write separation and load balancing.
+Alauda Database for MySQL-MGR provides multiple ways to access MySQL-MGR clusters, supporting both internal and external cluster access. This section describes how to obtain appropriate connection addresses and establish connections to MySQL-MGR instances using the `mysql` client tool both inside and outside the cluster.
+For detailed connection examples of client libraries, please refer to [How to Access MySQL-MGR Instances](../how_to/10-access.mdx)
 
 ## Procedure
 
@@ -23,33 +19,33 @@ Provides various access methods for MySQL-MGR clusters, supporting both internal
     2. Connect using the MySQL Client. For example, to access the read/write service:
 
     ```bash
-    mysql -h${name}-read-write.${namespace} -P3306 -u${username} -p${password}
+    mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
     ```
 
-    3. Verify read/write separation:
+    3. View member roles:
 
     ```bash
-    SHOW VARIABLES LIKE 'read_only';
+    select * from performance_schema.replication_group_members;
     ```
   </Tab>
 
   <Tab label="Web Console">
     1. Go to **Access Management** on the instance details page.
-    2. Choose the access method:
+    2. Obtain the access method:
 
     - Internal access to the cluster: Read/write or read-only internal routing; formats are `${instance name}-read-write` and `${instance name}-read-only`.
 
     3. Obtain the account credentials.
-    4. Connect using an external MySQL client tool or terminal console. For example, to access the read/write service:
+    4. Connecting using the `mysql` client tool from outside the cluster or via terminal console. For example, to access the read-write service:
 
     ```bash
-    mysql -h${name}-read-write.${namespace} -P3306 -u${username} -p${password}
+    mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
     ```
 
-    5. Verify read/write separation:
+    5. View member roles:
 
     ```bash
-    SHOW VARIABLES LIKE 'read_only';
+    select * from performance_schema.replication_group_members;
     ```
   </Tab>
 </Tabs>
@@ -79,10 +75,10 @@ Provides various access methods for MySQL-MGR clusters, supporting both internal
     mysql -h${node_ip} -P${port} -u${username} -p${password}
     ```
 
-    3. Verify read/write separation:
+    3. View member roles:
 
     ```bash
-    SHOW VARIABLES LIKE 'read_only';
+    select * from performance_schema.replication_group_members;
     ```
   </Tab>
 
@@ -103,10 +99,10 @@ Provides various access methods for MySQL-MGR clusters, supporting both internal
     mysql -h${node_ip} -P${port} -u${username} -p${password}
     ```
 
-    5. Verify read/write separation:
+    5. View member roles:
 
     ```bash
-    SHOW VARIABLES LIKE 'read_only';
+    select * from performance_schema.replication_group_members;
     ```
   </Tab>
 </Tabs>
