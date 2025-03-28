@@ -4,10 +4,8 @@ weight: 10
 # 访问方式
 
 ## 功能简介
-提供多种访问 MySQL-MGR 集群的方式，支持集群内外访问和读写分离配置。
-
-## 核心组件
-- **MySQL Router**：提供读写分离和负载均衡
+Alauda Database for MySQL-MGR 提供多种访问 MySQL-MGR 集群的方式，支持集群内外访问。本节描述了如何获取适当的连接地址，并使用客户端工具 `mysql` 在集群内外建立与 MySQL-MGR 实例的连接。
+客户端库的详细连接示例，请参阅 [如何访问MySQL-MGR实例](../how_to/10-access.mdx)
 
 ## 操作步骤
 
@@ -19,26 +17,26 @@ weight: 10
 2. 使用 MySQL Client 连接
 以访问读写服务为例：
 ```bash
-mysql -h${name}-read-write.${namespace} -P3306 -u${username} -p${password}
+mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
 ```
-3. 验证读写分离：
+3. 查看成员角色：
 ```bash
-SHOW VARIABLES LIKE 'read_only';
+select * from performance_schema.replication_group_members;
 ```
 </Tab>
 
 <Tab label="Web Console">
 1. 在实例详情页进入 **访问管理**
-2. 选择访问方式：
+2. 获取访问方式：
 - 集群内访问：读写或只读内部路由: 格式为`${实例名称}-read-write` 和 `${实例名称}-read-only`
 3. 获取账号密码
-4. 使用集群外或终端控制台 MySQL 客户端工具连接，以访问读写服务为例：
+4. 使用集群外或终端控制台 `mysql` 客户端工具连接，以访问读写服务为例：
 ```bash
-mysql -h${name}-read-write.${namespace} -P3306 -u${username} -p${password}
+mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p'${password}'
 ```
-5. 验证读写分离：
+5. 查看成员角色：
 ```bash
-SHOW VARIABLES LIKE 'read_only';
+select * from performance_schema.replication_group_members;
 ```
 </Tab>
 </Tabs>
@@ -61,9 +59,9 @@ kubectl get svc -n ${namespace} ${name}-read-write -o jsonpath='{.spec.ports[0].
 ```bash
 mysql -h${node_ip} -P${port} -u${username} -p${password}
 ```
-3. 验证读写分离：
+3. 查看成员角色：
 ```bash
-SHOW VARIABLES LIKE 'read_only';
+select * from performance_schema.replication_group_members;
 ```
 </Tab>
 
@@ -79,9 +77,9 @@ SHOW VARIABLES LIKE 'read_only';
 ```bash
 mysql -h${node_ip} -P${port} -u${username} -p${password}
 ```
-5. 验证读写分离：
+5. 查看成员角色：
 ```bash
-SHOW VARIABLES LIKE 'read_only';
+select * from performance_schema.replication_group_members;
 ```
 </Tab>
 </Tabs>
