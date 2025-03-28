@@ -3,8 +3,12 @@ weight: 25
 i18n:
   title:
     en: Upgrade
+sourceSHA: 84d50b2ae136e1409f875ea360e5f68b33b50987c68de241e5866084240083e0
 ---
 
 # 升级
 
-Alauda Database for MySQL-MGR 插件跟随平台升级场景无需特殊处理。要升级 Alauda Application Services，请参考 <ExternalSiteLink name="acp" href="/upgrade/index" children="升级 Operator" />。升级完成后，可以按照 [小版本升级指南](how_to/30-upgrade) 来升级 MySQL-MGR 实例。
+Alauda 数据库服务针对 MySQL-MGR 将根据配置的升级策略执行升级：
+
+- **自动**：在检测到新组件版本时，会立即触发自动升级。
+- **手动**：需要手动批准才能启动升级过程。
