@@ -12520,9 +12520,6 @@ spec:
               pause:
                 description: Pause is the flag to pause the MySQL cluster
                 type: boolean
-              runAsRoot:
-                description: RunAsRoot is the flag to run MySQL Server as root
-                type: boolean
               upgradeOption:
                 description: UpgradeOption is the option to upgrade the MySQL cluster
                 properties:
