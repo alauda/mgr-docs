@@ -94,6 +94,39 @@ The plugin serves as a foundational component for query analytics capabilities. 
   </Tab>
 </Tabs>
 
+## Installing Alauda Container Platform Data Services Query Analytics
+
+::: tip Optional Installation
+The plugin serves as a foundational component for query analytics capabilities. It is not necessary to install it if query performance monitoring and analysis are not required.
+:::
+
+### Prerequisites
+
+1. Download Alauda Container Platform Data Services Query Analytics installation package that matches the platform.
+2. Use the platform's application publishing capability to publish Alauda Container Platform Data Services Query Analytics to any cluster where Application Services graphical capabilities are desired.
+
+### Procedure
+
+<Tabs>
+  <Tab label="Web Console">
+    1. Log in to the platform and navigate to the **Platform Management** page.
+    2. In the left navigation bar, select **Marketplace** -> **Operator Hub** to enter the **Operator Hub** page.
+    3. Find **Alauda Container Platform Data Services Query Analytics**, click **Install** to access the installation page.
+
+    Configuration Parameters:
+
+    | **Parameter**   | **Recommended Configuration**                                      |
+    | :-------------- | :----------------------------------------------------------------- |
+    | **Channel**     | The default Channel is **stable**.                                 |
+    | **Version**     | Select the desired version to install.                             |
+    | **Installation Mode** | **Cluster**: All namespaces under the cluster share one Operator for creating and managing instances, resulting in lower resource usage. |
+    | **Installation Location**   | Choose the **Recommended**: If none exists, it will be created automatically. |
+    | **Upgrade Strategy** | **Manual**: When a new version is available in the Operator Hub, manual confirmation is required to upgrade the Operator to the latest version. |
+
+    4. On the **Install Operator** page, select **Default Configuration**, then click **Install** to complete the installation of **Alauda Container Platform Data Services Query Analytics**.
+  </Tab>
+</Tabs>
+
 :::warning Storage Configuration
 The Query Analytics plugin defaults to hostPath storage at `/cpaas/ck`. If this path doesn't exist (commonly changed to `/var/cpaas`), follow these steps:
 
