@@ -1,0 +1,132 @@
+---
+weight: 15
+sourceSHA: 1ab1035e8a4d0183a2dae0adb46dadd9ca3fbf724061da718d14d96aaa3029a5
+---
+
+# Управление пользователями
+
+## Обзор возможностей
+
+Обеспечивает полный цикл управления пользователями, включая создание, назначение прав, изменение пароля и операции удаления.
+
+## Процедура
+
+<Tabs>
+  <Tab label="CLI">
+    1. Создать пароль пользователя
+
+    ```bash
+    kubectl -n ${namespace} create secret generic mgr-${instance_name}-${username}-password \
+    --from-literal=host="%" \
+    --from-literal=user=${username} \
+    --from-literal=password=${password}
+    ```
+
+    ::: info
+
+    - `${instance_name}` — это имя желаемого экземпляра MySQL-MGR для создаваемого пользователя
+    - `${namespace}` — это пространство имен, к которому принадлежит экземпляр
+    - `${username}` — это желаемое имя пользователя для создания
+    - `${password}` — это желаемый пароль для установки
+
+    :::
+
+    2. Создать CR управления пользователями
+
+    ```bash
+    kubectl apply -n ${namespace} -f - <<EOF
+    apiVersion: middleware.alauda.io/v1
+    kind: MysqlUser
+    metadata:
+      labels:
+        mgr/cluster: mgr
+        mysql/arch: mgr
+      name: ${name}
+      namespace: ${namespace}
+    spec:
+      host: '%'
+      mysql: ${instance_name}
+      privileges:
+        - grants:
+            - SELECT
+            - INSERT
+            - UPDATE
+            - DELETE
+            - CREATE
+            - DROP
+            - REFERENCES
+            - INDEX
+            - ALTER
+            - CREATE TEMPORARY TABLES
+            - LOCK TABLES
+            - CREATE VIEW
+            - SHOW VIEW
+            - CREATE ROUTINE
+            - ALTER ROUTINE
+            - EXECUTE
+            - EVENT
+            - TRIGGER
+          targets:
+            - ${database}.*
+      secretName: ${secret_name}
+      user: ${username}
+    EOF
+    ```
+
+    ::: info
+
+    - `${instance_name}` — это имя желаемого экземпляра MySQL-MGR для создаваемого пользователя
+    - `${namespace}` — это пространство имен, к которому принадлежит экземпляр
+    - `${username}` — это желаемое имя пользователя для создания
+    - `${secret_name}` — это имя секрета для хранения пароля
+    - `${database}` — это желаемое имя базы данных для создаваемого пользователя
+
+    :::
+
+    3. Войти в MySQL с использованием соответствующего пользователя
+    4. Проверить права пользователя, пример для пользователя dev:
+
+    ```bash
+    SHOW GRANTS;
+    ```
+
+    Результат будет показан:
+
+    ```bash
+    +----------------------------------------------+
+    | Grants for dev@%                             |
+    +----------------------------------------------+
+    | GRANT USAGE ON *.* TO `dev`@`%`              |
+    | GRANT ALL PRIVILEGES ON `dev`.* TO `dev`@`%` |
+    +----------------------------------------------+
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Перейдите на вкладку **Управление пользователями** экземпляра
+    2. Нажмите **Создать пользователя**
+    3. Настройте параметры:
+
+    - Имя пользователя: соответствует наименованиям
+    - Пароль: соответствует требованиям к сложности
+    - Права: права на уровне базы данных
+
+    4. Войти в MySQL с использованием соответствующего пользователя
+    5. Проверить права пользователя, пример для пользователя dev:
+
+    ```bash
+    SHOW GRANTS;
+    ```
+
+    Результат будет показан:
+
+    ```bash
+    +----------------------------------------------+
+    | Grants for dev@%                             |
+    +----------------------------------------------+
+    | GRANT USAGE ON *.* TO `dev`@`%`              |
+    | GRANT ALL PRIVILEGES ON `dev`.* TO `dev`@`%` |
+    +----------------------------------------------+
+    ```
+  </Tab>
+</Tabs>
