@@ -69,8 +69,9 @@ The plugin serves as a foundational component for query analytics capabilities. 
 
 ### Prerequisites
 
-1. Download Alauda Container Platform Data Services Query Analytics installation package that matches the platform.
-2. Use the platform's application publishing capability to publish Alauda Container Platform Data Services Query Analytics to any cluster where Application Services graphical capabilities are desired.
+1. Install the **ClickHouse** plugin from the **Operator Hub** in the **Marketplace** first.
+2. Download Alauda Container Platform Data Services Query Analytics installation package that matches the platform.
+3. Use the platform's application publishing capability to publish Alauda Container Platform Data Services Query Analytics to any cluster where Application Services graphical capabilities are desired.
 
 ### Procedure
 
@@ -132,8 +133,6 @@ The Query Analytics plugin defaults to hostPath storage at `/cpaas/ck`. If this 
 
 1. Edit the QueryAnalyticsInstaller (`qai`) resource
 2. Configure `slowSQL.storageClassName` with your system's storage class
-3. Delete existing pods and PVCs for changes to apply
-
 Example configuration:
 ```yaml
 kind: QueryAnalyticsInstaller
@@ -160,6 +159,11 @@ spec:
     server:
       image: 192.168.128.24/middleware/slowsql:2926e899
     storageClassName: mid-topolvmsc
+```
+3. Delete existing pods and PVCs for changes to apply:
+```bash
+kubectl -n cpaas-system delete pvc -l clickhouse.altinity.com/cluster=slowsql-cluster &
+kubectl -n cpaas-system delete pod -l clickhouse.altinity.com/cluster=slowsql-cluster
 ```
 :::
 

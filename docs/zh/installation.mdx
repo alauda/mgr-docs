@@ -65,8 +65,9 @@ i18n:
 :::
 
 ### 前提条件
-1. 下载与平台匹配的 Alauda Container Platform Data Services Query Analytics 安装包。
-2. 通过平台应用上架能力，上架至任意希望使用 Alauda Application Services 界面化能力的集群。
+1. 首先从 **应用商店管理** 中的 **Operator Hub** 安装 **ClickHouse** 插件。
+2. 下载与平台匹配的 Alauda Container Platform Data Services Query Analytics 安装包。
+3. 通过平台应用上架能力，上架至任意希望使用 Alauda Application Services 界面化能力的集群。
 
 ### 操作步骤
 <Tabs>
@@ -94,8 +95,6 @@ Query Analytics 插件默认使用主机路径存储 `/cpaas/ck`。如果该路�
 
 1. 编辑 QueryAnalyticsInstaller (`qai`) 资源
 2. 配置 `slowSQL.storageClassName` 为您系统的存储类
-3. 删除现有的 Pod 和 PVC 以使更改生效
-
 示例配置:
 ```yaml
 kind: QueryAnalyticsInstaller
@@ -122,6 +121,11 @@ spec:
     server:
       image: 192.168.128.24/middleware/slowsql:2926e899
     storageClassName: mid-topolvmsc
+```
+3. 删除现有的 Pod 和 PVC 以使更改生效:
+```bash
+kubectl -n cpaas-system delete pvc -l clickhouse.altinity.com/cluster=slowsql-cluster &
+kubectl -n cpaas-system delete pod -l clickhouse.altinity.com/cluster=slowsql-cluster
 ```
 :::
 
