@@ -1,0 +1,144 @@
+---
+weight: 50
+sourceSHA: 743c50564b842a3133ed22e9a07a5c9623532b66fb71fb7e88f30a467315c178
+---
+
+# Как получить доступ к экземплярам MySQL-MGR
+
+Существует несколько способов подключения к экземпляру MySQL-MGR при доступе к нему из бизнес-приложения. Этот раздел описывает, как выбрать адрес подключения для доступа к экземпляру MySQL-MGR и приводит примеры для демонстрации.
+
+## Применимые сценарии
+
+| Метод доступа                       | Применимые сценарии                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Доступ в пределах кластера**       | В режиме единственного мастера или многомастера приложения внутри кластера получают доступ к экземпляру MGR через порт, предоставленный SVC. |
+| **Доступ извне кластера** | В режиме единственного мастера или многомастера приложения вне кластера получают доступ к экземпляру MGR через порт NodePort.              |
+
+## Общие клиентские программы
+
+В примере демонстрируются программы, использующие клиенты JDBC и GORM. Пожалуйста, обратитесь к документации соответствующего фреймворка для других клиентов.
+
+При использовании кода, пожалуйста, измените соответствующие переменные на ваши актуальные значения. Описание переменных выглядит следующим образом:
+
+| Переменная     | Описание                                                        |
+| -------------- | ---------------------------------------------------------------- |
+| **host**     | IP-адрес или имя SVC хоста для соответствующего метода доступа |
+| **port**     | Номер порта для соответствующего метода доступа                |
+| **user**     | Имя пользователя для MySQL-MGR                                         |
+| **password** | Фактический пароль для пользователя MySQL-MGR                         |
+| **database** | Имя базы данных, к которой необходимо получить доступ                            |
+
+### JDBC
+
+1. Внутренний доступ к кластеру
+
+   ```java
+   import java.sql.*;
+   public class Main {
+       static final String DB_URL = "jdbc:mysql://mgr-0:3306,mgr-1:3306,mgr-2:3306/mysql";
+       static final String USER = "root";
+       static final String PASS = "123456";
+       public static void main(String[] args) {
+           try {
+               Connection conn = DriverManager.getConnection(DB_URL,USER,PASS);
+               Statement statement = conn.createStatement();
+           }catch(SQLException se){
+               se.printStackTrace();
+           }
+       }
+   }
+   ```
+
+2. Внешний доступ к кластеру - через NodePort
+
+   ```java
+   import java.sql.*;
+   public class Main {
+       static final String DB_URL = "jdbc:mysql://192.168.1.100:32630,192.168.1.101:32630,192.168.1.102:32630/mysql";
+       static final String USER = "root";
+       static final String PASS = "123456";
+       public static void main(String[] args) {
+           try {
+               Connection conn = DriverManager.getConnection(DB_URL,USER,PASS);
+               Statement statement = conn.createStatement();
+           }catch(SQLException e){
+               e.printStackTrace();
+           }
+       }
+   }
+   ```
+
+### GORM
+
+1. Внутренний доступ к кластеру
+
+   ```go
+   import (
+       "gorm.io/driver/mysql"
+       "gorm.io/gorm"
+       "gorm.io/plugin/dbresolver"
+   )
+
+   func main() {
+       writeDSN:="root:123456@tcp(mgr-read-write:32631)/mysql"
+       readDSN := "root:123456@tcp(mgr-read-only:32630)/mysql"
+       db, err := gorm.Open(mysql.Open(writeDSN), &gorm.Config{})
+       if err != nil {
+           panic(err)
+       }
+       err = db.Use(dbresolver.Register(dbresolver.Config{
+           Replicas:          []gorm.Dialector{mysql.Open(readDSN)},
+           Policy:            dbresolver.RandomPolicy{},
+           TraceResolverMode: true,
+       }))
+       if err != nil {
+           panic(err)
+       }
+   }
+   ```
+
+2. Внешний доступ к кластеру - через NodePort
+
+   ```go
+   package main
+
+   import (
+       "gorm.io/driver/mysql"
+       "gorm.io/gorm"
+       "gorm.io/plugin/dbresolver"
+   )
+
+   func main() {
+       writeDSNs := []string{
+           "root:123456@tcp(192.168.18.130:32631)/mysql",
+           "root:123456@tcp(192.168.18.131:32631)/mysql",
+           "root:123456@tcp(192.168.18.132:32631)/mysql",
+       }
+       readDSNs := []string{
+           "root:123456@tcp(192.168.18.131:32630)/mysql",
+           "root:123456@tcp(192.168.18.132:32630)/mysql",
+           "root:123456@tcp(192.168.18.133:32630)/mysql",
+       }
+       db, err := gorm.Open(mysql.Open(writeDSNs[0]), &gorm.Config{})
+       if err != nil {
+           panic(err)
+       }
+       sources := make([]gorm.Dialector, 0)
+       replicas := make([]gorm.Dialector, 0)
+       for _, dsn := range writeDSNs {
+           sources = append(sources, mysql.Open(dsn))
+       }
+       for _, dsn := range readDSNs {
+           replicas = append(replicas, mysql.Open(dsn))
+       }
+       err = db.Use(dbresolver.Register(dbresolver.Config{
+           Sources:           sources,
+           Replicas:          replicas,
+           Policy:            dbresolver.RandomPolicy{},
+           TraceResolverMode: true,
+       }))
+       if err != nil {
+           panic(err)
+       }
+   }
+   ```

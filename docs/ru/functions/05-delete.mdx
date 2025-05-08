@@ -1,0 +1,40 @@
+---
+weight: 5
+sourceSHA: a598e25ccadfac0467a7e627ee73fe50fee2e28b561eb05f50eefda673859bf2
+---
+
+# Удаление экземпляра
+
+::: tip Ресурсы подлежащие удалению
+Удаление экземпляра автоматически удалит все безопасно удаляемые ресурсы, созданные экземпляром, такие как StatefulSets, Deployments, ConfigMaps, Secrets и Services. Специальные ресурсы, которые могут содержать важные данные, необходимо удалять вручную, такие как PersistentVolumeClaims и резервные ресурсы, связанные с MySQL-MGR, в частности mysqlbackups.mysql.middleware.alauda.io и связанные с ним фактические данные.
+:::
+
+## Процедура
+
+<Tabs>
+  <Tab label="CLI">
+    1. Удалите экземпляр
+
+    ```bash
+    kubectl delete mysql -n ${namespace} ${name}
+    ```
+
+    2. Очистите постоянные данные
+
+    ```bash
+    kubectl get pvc -n ${namespace} -l v1alpha1.mysql.middleware.alauda.io/cluster=${name} -o name | xargs kubectl delete -n ${namespace}
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Выберите **MySQL-MGR** в левой навигационной панели.
+    2. Введите целевое пространство имен.
+    3. Нажмите на ***имя экземпляра***.
+    4. Нажмите **Действия** > **Удалить**.
+    5. Выберите параметры удаления:
+       - Необязательно: удалить PersistentVolumeClaim
+    6. Подтвердите удаление:
+       - Проверьте связанные ресурсы
+       - Введите имя экземпляра для окончательной подтверждения удаления
+  </Tab>
+</Tabs>
