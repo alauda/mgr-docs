@@ -70,8 +70,9 @@ sourceSHA: 86732c88fba57d5f7c4b96dfb8242187eee93c4066393b643ba4a1afc09790fc
 
 ### Предварительные требования
 
-1. Скачайте пакет установки Alauda Container Platform Data Services Query Analytics, соответствующий платформе.
-2. Используйте возможности публикации приложений платформы для публикации Alauda Container Platform Data Services Query Analytics в любой кластер, где необходимы графические возможности Application Services.
+1. Сначала установите плагин **ClickHouse** из **Operator Hub** в разделе **Marketplace**.
+2. Скачайте установочный пакет аналитики запросов платформы Alauda для служб данных, который соответствует платформе.
+3. Используйте возможность платформы по публикации приложений, чтобы опубликовать аналитику запросов платформы Alauda для служб данных в любом кластере, где требуются графические возможности служб приложений.
 
 ### Процедура
 
@@ -99,11 +100,9 @@ sourceSHA: 86732c88fba57d5f7c4b96dfb8242187eee93c4066393b643ba4a1afc09790fc
 Плагин Query Analytics использует хранилище hostPath по умолчанию по адресу `/cpaas/ck`. Если этот путь не существует (обычно изменяется на `/var/cpaas`), выполните следующие шаги:
 
 1. Отредактируйте ресурс QueryAnalyticsInstaller (`qai`)
-2. Настройте `slowSQL.storageClassName` с классом хранения вашего системы
-3. Удалите существующие поды и PVC, чтобы изменения вступили в силу
+2. Настройте `slowSQL.storageClassName` с классом хранилища вашей системы
 
 Пример конфигурации:
-
 ```yaml
 kind: QueryAnalyticsInstaller
 metadata:
@@ -130,7 +129,12 @@ spec:
       image: 192.168.128.24/middleware/slowsql:2926e899
     storageClassName: mid-topolvmsc
 ```
-
+3. Удалите существующие поды и PVC, чтобы изменения вступили в силу:
+```bash
+kubectl -n cpaas-system delete pvc -l clickhouse.altinity.com/cluster=slowsql-cluster &
+kubectl -n cpaas-system delete pod -l clickhouse.altinity.com/cluster=slowsql-cluster
+```
+  
 :::
 
 ## Установка Alauda Database для MySQL-MGR
