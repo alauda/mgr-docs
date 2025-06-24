@@ -1,6 +1,6 @@
 title: Alauda Database Service for MySQL-MGR
 logoText: Alauda Database Service for MySQL-MGR
-lang: zh
+lang: en
 api:
   crds:
     - docs/shared/crds/*.yaml
