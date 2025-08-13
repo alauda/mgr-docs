@@ -27,13 +27,13 @@ To ensure data safety, it is recommended to perform a full backup before stoppin
 
 <Tabs>
   <Tab label="CLI">
-    #### Stop Instance
+    ### Stop Instance
 
     ```bash
     kubectl patch mysql ${name} -n ${namespace} --type='merge' -p '{"spec":{"pause":true}}'
     ```
 
-    #### Start Instance
+    ### Start Instance
 
     ```bash
     kubectl patch mysql ${name} -n ${namespace} --type='merge' -p '{"spec":{"pause":false}}'
@@ -45,12 +45,16 @@ To ensure data safety, it is recommended to perform a full backup before stoppin
     2. Enter the target namespace.
     3. Select the target instance.
 
-    #### Stop Instance
+    {/* lint ignore no-duplicate-headings-in-section */}
+
+    ### Stop Instance
 
     1. Click **Actions > Stop**.
     2. Confirm the operation and wait for the status to change to "Stopped."
 
-    #### Start Instance
+    {/* lint ignore no-duplicate-headings-in-section */}
+
+    ### Start Instance
 
     1. In the operation menu of the stopped instance, click **Start**.
     2. Wait for the status to change to "Running."
