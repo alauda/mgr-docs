@@ -9,7 +9,7 @@ sourceSHA: 745dce529bd0a0d29ce936c77d290c8801f4c77c4de2ee773a9cc066a11072cf
 
 <Tabs>
   <Tab label="CTL">
-    1. Add an annotation to mark the instance for restart
+    Add an annotation to mark the instance for restart
 
     ```bash
     kubectl annotate mysql ${name} -n ${namespace} "restartTime=$(date +%s)"

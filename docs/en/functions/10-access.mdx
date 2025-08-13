@@ -18,35 +18,35 @@ For detailed connection examples of client libraries, please refer to [How to Ac
     1. Obtain the Service name: Based on the instance name, the corresponding Service names are `${name}-read-write` and `${name}-read-only`.
     2. Connect using the MySQL Client. For example, to access the read/write service:
 
-    ```bash
-    mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
-    ```
+        ```bash
+        mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
+        ```
 
     3. View member roles:
 
-    ```bash
-    select * from performance_schema.replication_group_members;
-    ```
+        ```bash
+        select * from performance_schema.replication_group_members;
+        ```
   </Tab>
 
   <Tab label="Web Console">
     1. Go to **Access Management** on the instance details page.
     2. Obtain the access method:
 
-    - Internal access to the cluster: Read/write or read-only internal routing; formats are `${instance name}-read-write` and `${instance name}-read-only`.
+        - Internal access to the cluster: Read/write or read-only internal routing; formats are `${instance name}-read-write` and `${instance name}-read-only`.
 
     3. Obtain the account credentials.
     4. Connecting using the `mysql` client tool from outside the cluster or via terminal console. For example, to access the read-write service:
 
-    ```bash
-    mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
-    ```
+        ```bash
+        mysql -h${instance_name}-read-write.${namespace} -P3306 -u${username} -p${password}
+        ```
 
     5. View member roles:
 
-    ```bash
-    select * from performance_schema.replication_group_members;
-    ```
+        ```bash
+        select * from performance_schema.replication_group_members;
+        ```
   </Tab>
 </Tabs>
 
@@ -65,21 +65,21 @@ For detailed connection examples of client libraries, please refer to [How to Ac
 
     1. Obtain the NodePort access port:
 
-    ```bash
-    kubectl get svc -n ${namespace} ${name}-read-write -o jsonpath='{.spec.ports[0].nodePort}'
-    ```
+        ```bash
+        kubectl get svc -n ${namespace} ${name}-read-write -o jsonpath='{.spec.ports[0].nodePort}'
+        ```
 
     2. Connect using the MySQL Client:
 
-    ```bash
-    mysql -h${node_ip} -P${port} -u${username} -p${password}
-    ```
+        ```bash
+        mysql -h${node_ip} -P${port} -u${username} -p${password}
+        ```
 
     3. View member roles:
 
-    ```bash
-    select * from performance_schema.replication_group_members;
-    ```
+        ```bash
+        select * from performance_schema.replication_group_members;
+        ```
   </Tab>
 
   <Tab label="Web Console">
@@ -90,19 +90,19 @@ For detailed connection examples of client libraries, please refer to [How to Ac
     1. Go to **Access Management** on the instance details page.
     2. Choose the access method:
 
-    - External access - via NodePort: Read/write or read-only Router connection address.
+        - External access - via NodePort: Read/write or read-only Router connection address.
 
     3. Obtain the account credentials.
     4. Connect using an external MySQL client tool or terminal console:
 
-    ```bash
-    mysql -h${node_ip} -P${port} -u${username} -p${password}
-    ```
+        ```bash
+        mysql -h${node_ip} -P${port} -u${username} -p${password}
+        ```
 
     5. View member roles:
 
-    ```bash
-    select * from performance_schema.replication_group_members;
-    ```
+        ```bash
+        select * from performance_schema.replication_group_members;
+        ```
   </Tab>
 </Tabs>

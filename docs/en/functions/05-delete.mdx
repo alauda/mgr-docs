@@ -15,15 +15,15 @@ Deleting an instance will automatically remove all safely deletable resources cr
   <Tab label="CLI">
     1. Delete the instance
 
-    ```bash
-    kubectl delete mysql -n ${namespace} ${name}
-    ```
+        ```bash
+        kubectl delete mysql -n ${namespace} ${name}
+        ```
 
     2. Clean up persistent data
 
-    ```bash
-    kubectl get pvc -n ${namespace} -l v1alpha1.mysql.middleware.alauda.io/cluster=${name} -o name | xargs kubectl delete -n ${namespace}
-    ```
+        ```bash
+        kubectl get pvc -n ${namespace} -l v1alpha1.mysql.middleware.alauda.io/cluster=${name} -o name | xargs kubectl delete -n ${namespace}
+        ```
   </Tab>
 
   <Tab label="Web Console">
