@@ -15,15 +15,15 @@ Understand the logs during the instance operation process from the container lev
   <Tab label="CLI">
     1. View all related pods of the instance, including the mysql pod and mysql-router pod.
 
-    ```bash
-    kubectl get pod -n ${namespace} -l "middleware.instance/name=${instance_name}"
-    ```
+        ```bash
+        kubectl get pod -n ${namespace} -l "middleware.instance/name=${instance_name}"
+        ```
 
     2. Query the logs for a specific pod.
 
-    ```bash
-    kubectl logs -n ${namespace} ${pod_name}
-    ```
+        ```bash
+        kubectl logs -n ${namespace} ${pod_name}
+        ```
   </Tab>
 
   <Tab label="Web Console">

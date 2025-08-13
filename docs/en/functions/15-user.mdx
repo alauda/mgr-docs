@@ -15,90 +15,90 @@ Provides complete user lifecycle management, including creation, permission assi
   <Tab label="CLI">
     1. Create User Password
 
-    ```bash
-    kubectl -n ${namespace} create secret generic mgr-${instance_name}-${username}-password \
-    --from-literal=host="%" \
-    --from-literal=user=${username} \
-    --from-literal=password=${password}
-    ```
+        ```bash
+        kubectl -n ${namespace} create secret generic mgr-${instance_name}-${username}-password \
+        --from-literal=host="%" \
+        --from-literal=user=${username} \
+        --from-literal=password=${password}
+        ```
 
-    ::: info
+        ::: info
 
-    - `${instance_name}` is the desired MySQL-MGR instance name for the user to be created
-    - `${namespace}` is the namespace to which the instance belongs
-    - `${username}` is the desired username to be created
-    - `${password}` is the desired password to be set
+        - `${instance_name}` is the desired MySQL-MGR instance name for the user to be created
+        - `${namespace}` is the namespace to which the instance belongs
+        - `${username}` is the desired username to be created
+        - `${password}` is the desired password to be set
 
-    :::
+        :::
 
     2. Create User Management CR
 
-    ```bash
-    kubectl apply -n ${namespace} -f - <<EOF
-    apiVersion: middleware.alauda.io/v1
-    kind: MysqlUser
-    metadata:
-      labels:
-        mgr/cluster: mgr
-        mysql/arch: mgr
-      name: ${name}
-      namespace: ${namespace}
-    spec:
-      host: '%'
-      mysql: ${instance_name}
-      privileges:
-        - grants:
-            - SELECT
-            - INSERT
-            - UPDATE
-            - DELETE
-            - CREATE
-            - DROP
-            - REFERENCES
-            - INDEX
-            - ALTER
-            - CREATE TEMPORARY TABLES
-            - LOCK TABLES
-            - CREATE VIEW
-            - SHOW VIEW
-            - CREATE ROUTINE
-            - ALTER ROUTINE
-            - EXECUTE
-            - EVENT
-            - TRIGGER
-          targets:
-            - ${database}.*
-      secretName: ${secret_name}
-      user: ${username}
-    EOF
-    ```
-    ::: info
+        ```bash
+        kubectl apply -n ${namespace} -f - <<EOF
+        apiVersion: middleware.alauda.io/v1
+        kind: MysqlUser
+        metadata:
+          labels:
+            mgr/cluster: mgr
+            mysql/arch: mgr
+          name: ${name}
+          namespace: ${namespace}
+        spec:
+          host: '%'
+          mysql: ${instance_name}
+          privileges:
+            - grants:
+                - SELECT
+                - INSERT
+                - UPDATE
+                - DELETE
+                - CREATE
+                - DROP
+                - REFERENCES
+                - INDEX
+                - ALTER
+                - CREATE TEMPORARY TABLES
+                - LOCK TABLES
+                - CREATE VIEW
+                - SHOW VIEW
+                - CREATE ROUTINE
+                - ALTER ROUTINE
+                - EXECUTE
+                - EVENT
+                - TRIGGER
+              targets:
+                - ${database}.*
+          secretName: ${secret_name}
+          user: ${username}
+        EOF
+        ```
+        ::: info
 
-    - `${instance_name}` is the desired MySQL-MGR instance name for the user to be created
-    - `${namespace}` is the namespace to which the instance belongs
-    - `${username}` is the desired username to be created
-    - `${secret_name}` is the secret name for carrying the password
-    - `${database}` is the desired database name for the user to be created
+        - `${instance_name}` is the desired MySQL-MGR instance name for the user to be created
+        - `${namespace}` is the namespace to which the instance belongs
+        - `${username}` is the desired username to be created
+        - `${secret_name}` is the secret name for carrying the password
+        - `${database}` is the desired database name for the user to be created
 
-    :::
+        :::
 
     3. Log in to MySQL using the corresponding user
     4. Check user permissions, example for user dev:
 
-    ```bash
-    SHOW GRANTS;
-    ```
+        ```bash
+        SHOW GRANTS;
+        ```
 
-    Result will show:
+        Result will show:
 
-    ```bash
-    +----------------------------------------------+
-    | Grants for dev@%                             |
-    +----------------------------------------------+
-    | GRANT USAGE ON *.* TO `dev`@`%`              |
-    | GRANT ALL PRIVILEGES ON `dev`.* TO `dev`@`%` |
-    +----------------------------------------------+
-    ```
+        ```bash
+        +----------------------------------------------+
+        | Grants for dev@%                             |
+        +----------------------------------------------+
+        | GRANT USAGE ON *.* TO `dev`@`%`              |
+        | GRANT ALL PRIVILEGES ON `dev`.* TO `dev`@`%` |
+        +----------------------------------------------+
+        ```
   </Tab>
 
   <Tab label="Web Console">
@@ -106,26 +106,26 @@ Provides complete user lifecycle management, including creation, permission assi
     2. Click **Create User**
     3. Configure parameters:
 
-    - Username: conforms to naming conventions
-    - Password: meets complexity requirements
-    - Permissions: database-level permissions
+        - Username: conforms to naming conventions
+        - Password: meets complexity requirements
+        - Permissions: database-level permissions
 
     4. Log in to MySQL using the corresponding user
     5. Check user permissions, example for user dev:
 
-    ```bash
-    SHOW GRANTS;
-    ```
+        ```bash
+        SHOW GRANTS;
+        ```
 
-    Result will show:
+        Result will show:
 
-    ```bash
-    +----------------------------------------------+
-    | Grants for dev@%                             |
-    +----------------------------------------------+
-    | GRANT USAGE ON *.* TO `dev`@`%`              |
-    | GRANT ALL PRIVILEGES ON `dev`.* TO `dev`@`%` |
-    +----------------------------------------------+
-    ```
+        ```bash
+        +----------------------------------------------+
+        | Grants for dev@%                             |
+        +----------------------------------------------+
+        | GRANT USAGE ON *.* TO `dev`@`%`              |
+        | GRANT ALL PRIVILEGES ON `dev`.* TO `dev`@`%` |
+        +----------------------------------------------+
+        ```
   </Tab>
 </Tabs>

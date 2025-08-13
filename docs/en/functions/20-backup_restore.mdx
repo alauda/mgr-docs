@@ -105,43 +105,43 @@ Ensure the instance status is **Running**
   <Tab label="CLI">
     1. Create a data backup
 
-    ```bash
-    kubectl -n ${namespace} create -f - <<EOF
-    apiVersion: mysql.middleware.alauda.io/v1
-    kind: MySQLBackup
-    metadata:
-      name: ${backup_name}
-      namespace: ${namespace}
-    spec:
-      cluster:
-        name: ${instance_name}
-      storage:
-        s3:
-          bucket: ${bucket}
-          endpoint: ${endpoint}
-          region: ${region}
-          secret:
-            name: ${secret_name}
-      type: ${type}
-    EOF
-    ```
+        ```bash
+        kubectl -n ${namespace} create -f - <<EOF
+        apiVersion: mysql.middleware.alauda.io/v1
+        kind: MySQLBackup
+        metadata:
+          name: ${backup_name}
+          namespace: ${namespace}
+        spec:
+          cluster:
+            name: ${instance_name}
+          storage:
+            s3:
+              bucket: ${bucket}
+              endpoint: ${endpoint}
+              region: ${region}
+              secret:
+                name: ${secret_name}
+          type: ${type}
+        EOF
+        ```
 
-    | Parameter               | Description                     |
-    | ---------------------- | ------------------------------ |
-    | backup_name            | Backup resource name           |
-    | namespace              | The namespace where the instance to be backed up resides |
-    | instance_name          | The name of the instance to be backed up |
-    | storage.s3.bucket      | Bucket name                    |
-    | storage.s3.endpoint    | S3 storage endpoint            |
-    | storage.s3.region      | S3 storage region              |
-    | storage.s3.secret.name | S3 storage secret name         |
-    | type                   | Backup type: full or increment |
+        | Parameter               | Description                     |
+        | ---------------------- | ------------------------------ |
+        | backup_name            | Backup resource name           |
+        | namespace              | The namespace where the instance to be backed up resides |
+        | instance_name          | The name of the instance to be backed up |
+        | storage.s3.bucket      | Bucket name                    |
+        | storage.s3.endpoint    | S3 storage endpoint            |
+        | storage.s3.region      | S3 storage region              |
+        | storage.s3.secret.name | S3 storage secret name         |
+        | type                   | Backup type: full or increment |
 
     2. Wait for the backup to complete and check the backup status
 
-    ```bash
-    kubectl get MySQLBackup -n ${namespace} ${backup_name}
-    ```
+        ```bash
+        kubectl get MySQLBackup -n ${namespace} ${backup_name}
+        ```
   </Tab>
 
   <Tab label="Web Console">
@@ -163,39 +163,39 @@ Ensure the instance status is **Running**
   <Tab label="CLI">
     1. Create MySQLRestore to restore data
 
-    ```bash
-    kubectl -n ${namespace} create -f - <<EOF
-    apiVersion: middleware.alauda.io/v1
-    kind: MySQLRestore
-    metadata:
-      labels:
-        mysql/arch: mgr
-      name: ${restore_name}
-      namespace: ${namespace}
-    spec:
-      mgr:
-        backup:
-          name: ${backup_name}
-        cluster:
-          name: ${target_instance_name}
-        source:
-          name: ${source_instance_name}
-    EOF
-    ```
+        ```bash
+        kubectl -n ${namespace} create -f - <<EOF
+        apiVersion: middleware.alauda.io/v1
+        kind: MySQLRestore
+        metadata:
+          labels:
+            mysql/arch: mgr
+          name: ${restore_name}
+          namespace: ${namespace}
+        spec:
+          mgr:
+            backup:
+              name: ${backup_name}
+            cluster:
+              name: ${target_instance_name}
+            source:
+              name: ${source_instance_name}
+        EOF
+        ```
 
-    | Parameter               | Description                     |
-    | ---------------------- | ------------------------------- |
-    | restore_name           | Restore resource name           |
-    | namespace              | The namespace where the instance to be restored resides |
-    | backup_name            | The full backup resource name to be used |
-    | target_instance_name   | The name of the instance to restore data to |
-    | source_instance_name   | The instance name from which the backup resource is sourced |
+        | Parameter               | Description                     |
+        | ---------------------- | ------------------------------- |
+        | restore_name           | Restore resource name           |
+        | namespace              | The namespace where the instance to be restored resides |
+        | backup_name            | The full backup resource name to be used |
+        | target_instance_name   | The name of the instance to restore data to |
+        | source_instance_name   | The instance name from which the backup resource is sourced |
 
     2. Wait for the restore to complete and check the restore status
 
-    ```bash
-    kubectl get MySQLRestore -n ${namespace} ${restore_name}
-    ```
+        ```bash
+        kubectl get MySQLRestore -n ${namespace} ${restore_name}
+        ```
   </Tab>
 
   <Tab label="Web Console">

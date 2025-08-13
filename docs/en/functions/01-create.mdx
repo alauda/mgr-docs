@@ -21,163 +21,163 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
   <Tab label="CLI">
     1. Create Password
 
-    ```bash
-    kubectl -n ${namespace} create secret generic mgr-${instance_name}-password \
-    --from-literal=clusterchecker={password} \
-    --from-literal=exporter=${password} \
-    --from-literal=manage=${password} \
-    --from-literal=root=${password}
-    ```
+        ```bash
+        kubectl -n ${namespace} create secret generic mgr-${instance_name}-password \
+        --from-literal=clusterchecker={password} \
+        --from-literal=exporter=${password} \
+        --from-literal=manage=${password} \
+        --from-literal=root=${password}
+        ```
 
-    ::: info
+        ::: info
 
-    - `${instance_name}` is the instance name, used to identify the instance and should be unique.
-    - `${namespace}` is the namespace to which the instance belongs.
-    - `${password}` is the password, where different users can be set with distinct passwords.
+        - `${instance_name}` is the instance name, used to identify the instance and should be unique.
+        - `${namespace}` is the namespace to which the instance belongs.
+        - `${password}` is the password, where different users can be set with distinct passwords.
 
-    :::
+        :::
 
     2. Create Instance CR
 
-    ```bash
-    kubectl apply -n $namespace -f - <<EOF
-    apiVersion: middleware.alauda.io/v1
-    kind: Mysql
-    metadata:
-      labels:
-        mysql/arch: mgr
-      name: ${instance_name}
-    spec:
-      mgr:
-        enableStorage: true
-        members: 3
-        monitor:
-          enable: true
-        resources:
-          server:
-            limits:
-              cpu: "2"
-              memory: 4Gi
-            requests:
-              cpu: "2"
-              memory: 4Gi
-        router:
-          replicas: 2
-          resources:
-            limits:
-              cpu: 800m
-              memory: 640Mi
-            requests:
-              cpu: 800m
-              memory: 640Mi
-          svcRO:
-            type: ClusterIP
-          svcRW:
-            type: ClusterIP
-        volumeClaimTemplate:
-          spec:
+        ```bash
+        kubectl apply -n $namespace -f - <<EOF
+        apiVersion: middleware.alauda.io/v1
+        kind: Mysql
+        metadata:
+          labels:
+            mysql/arch: mgr
+          name: ${instance_name}
+        spec:
+          mgr:
+            enableStorage: true
+            members: 3
+            monitor:
+              enable: true
             resources:
-              requests:
-                storage: 20Gi
-            storageClassName: sc-topolvm
-      params:
-        mysql:
-          mysqld:
-            binlog_expire_logs_seconds: "604800"
-            binlog_format: ROW
-            character_set_server: utf8mb4
-            default_storage_engine: InnoDB
-            default_time_zone: +08:00
-            disabled_storage_engines: MyISAM
-            event_scheduler: ON
-            general_log: OFF
-            innodb_adaptive_flushing: ON
-            innodb_adaptive_hash_index: OFF
-            innodb_autoinc_lock_mode: "2"
-            innodb_buffer_pool_chunk_size: "134217728"
-            innodb_buffer_pool_dump_at_shutdown: ON
-            innodb_buffer_pool_dump_pct: "25"
-            innodb_buffer_pool_instances: "2"
-            innodb_buffer_pool_load_abort: OFF
-            innodb_buffer_pool_load_at_startup: ON
-            innodb_buffer_pool_size: 1536M
-            innodb_deadlock_detect: ON
-            innodb_disable_sort_file_cache: OFF
-            innodb_fast_shutdown: "1"
-            innodb_file_per_table: ON
-            innodb_flush_log_at_trx_commit: "1"
-            innodb_flush_method: O_DIRECT_NO_FSYNC
-            innodb_flush_neighbors: "0"
-            innodb_io_capacity: "4000"
-            innodb_io_capacity_max: "4294967295"
-            innodb_max_purge_lag: "0"
-            innodb_max_undo_log_size: "1073741824"
-            innodb_online_alter_log_max_size: "134217728"
-            innodb_page_cleaners: "4"
-            innodb_purge_batch_size: "600"
-            innodb_purge_rseg_truncate_frequency: "128"
-            innodb_purge_threads: "4"
-            innodb_read_io_threads: "4"
-            innodb_redo_log_capacity: 1G
-            innodb_rollback_segments: "128"
-            innodb_strict_mode: ON
-            innodb_thread_concurrency: "5"
-            innodb_undo_log_truncate: ON
-            innodb_write_io_threads: "4"
-            interactive_timeout: "3600"
-            log_bin: bin
-            log_bin_trust_function_creators: OFF
-            log_output: FILE
-            loose_group_replication_communication_max_message_size: "10485760"
-            loose_group_replication_exit_state_action: READ_ONLY
-            loose_group_replication_flow_control_applier_threshold: "1000"
-            loose_group_replication_flow_control_certifier_threshold: "1000"
-            loose_group_replication_member_expel_timeout: "5"
-            loose_group_replication_message_cache_size: 256M
-            loose_group_replication_paxos_single_leader: ON
-            loose_group_replication_poll_spin_loops: "0"
-            loose_group_replication_transaction_size_limit: "150000000"
-            loose_group_replication_unreachable_majority_timeout: "0"
-            loose_group_replication_xcom_ssl_accept_retries: "10"
-            max_allowed_packet: "67108864"
-            max_binlog_size: "1073741824"
-            max_connect_errors: "1000000"
-            max_connections: "512"
-            max_heap_table_size: 16M
-            max_prepared_stmt_count: "8192"
-            performance_schema: ON
-            replica_parallel_type: LOGICAL_CLOCK
-            replica_parallel_workers: "4"
-            skip_external_locking: ON
-            skip_name_resolve: ON
-            sort_buffer_size: "262144"
-            sql_generate_invisible_primary_key: ON
-            sql_mode: NO_ENGINE_SUBSTITUTION
-            sync_binlog: "1"
-            table_definition_cache: "2000"
-            table_open_cache_instances: "16"
-            thread_handling: pool-of-threads
-            thread_pool_max_threads: "128"
-            thread_pool_oversubscribe: "32"
-            thread_pool_size: "2"
-            tmp_table_size: 16M
-            wait_timeout: "3600"
-        router:
-          DEFAULT:
-            max_total_connections: "300"
-          logger:
-            level: info
-      upgradeOption:
-        autoUpgrade: false
-      version: "8.0"
-    EOF
-    ```
+              server:
+                limits:
+                  cpu: "2"
+                  memory: 4Gi
+                requests:
+                  cpu: "2"
+                  memory: 4Gi
+            router:
+              replicas: 2
+              resources:
+                limits:
+                  cpu: 800m
+                  memory: 640Mi
+                requests:
+                  cpu: 800m
+                  memory: 640Mi
+              svcRO:
+                type: ClusterIP
+              svcRW:
+                type: ClusterIP
+            volumeClaimTemplate:
+              spec:
+                resources:
+                  requests:
+                    storage: 20Gi
+                storageClassName: sc-topolvm
+          params:
+            mysql:
+              mysqld:
+                binlog_expire_logs_seconds: "604800"
+                binlog_format: ROW
+                character_set_server: utf8mb4
+                default_storage_engine: InnoDB
+                default_time_zone: +08:00
+                disabled_storage_engines: MyISAM
+                event_scheduler: ON
+                general_log: OFF
+                innodb_adaptive_flushing: ON
+                innodb_adaptive_hash_index: OFF
+                innodb_autoinc_lock_mode: "2"
+                innodb_buffer_pool_chunk_size: "134217728"
+                innodb_buffer_pool_dump_at_shutdown: ON
+                innodb_buffer_pool_dump_pct: "25"
+                innodb_buffer_pool_instances: "2"
+                innodb_buffer_pool_load_abort: OFF
+                innodb_buffer_pool_load_at_startup: ON
+                innodb_buffer_pool_size: 1536M
+                innodb_deadlock_detect: ON
+                innodb_disable_sort_file_cache: OFF
+                innodb_fast_shutdown: "1"
+                innodb_file_per_table: ON
+                innodb_flush_log_at_trx_commit: "1"
+                innodb_flush_method: O_DIRECT_NO_FSYNC
+                innodb_flush_neighbors: "0"
+                innodb_io_capacity: "4000"
+                innodb_io_capacity_max: "4294967295"
+                innodb_max_purge_lag: "0"
+                innodb_max_undo_log_size: "1073741824"
+                innodb_online_alter_log_max_size: "134217728"
+                innodb_page_cleaners: "4"
+                innodb_purge_batch_size: "600"
+                innodb_purge_rseg_truncate_frequency: "128"
+                innodb_purge_threads: "4"
+                innodb_read_io_threads: "4"
+                innodb_redo_log_capacity: 1G
+                innodb_rollback_segments: "128"
+                innodb_strict_mode: ON
+                innodb_thread_concurrency: "5"
+                innodb_undo_log_truncate: ON
+                innodb_write_io_threads: "4"
+                interactive_timeout: "3600"
+                log_bin: bin
+                log_bin_trust_function_creators: OFF
+                log_output: FILE
+                loose_group_replication_communication_max_message_size: "10485760"
+                loose_group_replication_exit_state_action: READ_ONLY
+                loose_group_replication_flow_control_applier_threshold: "1000"
+                loose_group_replication_flow_control_certifier_threshold: "1000"
+                loose_group_replication_member_expel_timeout: "5"
+                loose_group_replication_message_cache_size: 256M
+                loose_group_replication_paxos_single_leader: ON
+                loose_group_replication_poll_spin_loops: "0"
+                loose_group_replication_transaction_size_limit: "150000000"
+                loose_group_replication_unreachable_majority_timeout: "0"
+                loose_group_replication_xcom_ssl_accept_retries: "10"
+                max_allowed_packet: "67108864"
+                max_binlog_size: "1073741824"
+                max_connect_errors: "1000000"
+                max_connections: "512"
+                max_heap_table_size: 16M
+                max_prepared_stmt_count: "8192"
+                performance_schema: ON
+                replica_parallel_type: LOGICAL_CLOCK
+                replica_parallel_workers: "4"
+                skip_external_locking: ON
+                skip_name_resolve: ON
+                sort_buffer_size: "262144"
+                sql_generate_invisible_primary_key: ON
+                sql_mode: NO_ENGINE_SUBSTITUTION
+                sync_binlog: "1"
+                table_definition_cache: "2000"
+                table_open_cache_instances: "16"
+                thread_handling: pool-of-threads
+                thread_pool_max_threads: "128"
+                thread_pool_oversubscribe: "32"
+                thread_pool_size: "2"
+                tmp_table_size: 16M
+                wait_timeout: "3600"
+            router:
+              DEFAULT:
+                max_total_connections: "300"
+              logger:
+                level: info
+          upgradeOption:
+            autoUpgrade: false
+          version: "8.0"
+        EOF
+        ```
 
     3. Verify Instance Status
 
-    ```bash
-    kubectl get mysql -n {namespace} {instance_name} -w
-    ```
+        ```bash
+        kubectl get mysql -n {namespace} {instance_name} -w
+        ```
   </Tab>
 
   <Tab label="Web Console">
@@ -186,23 +186,23 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
     3. Click **Create Instance**.
     4. Configure Basic Parameters:
 
-    - Instance Name: unique identifier
-    - Architecture Configuration: Single Master (default) / Multi-Master
+        - Instance Name: unique identifier
+        - Architecture Configuration: Single Master (default) / Multi-Master
 
     5. Resource Configuration:
 
-    - Number of Replicas: recommended to start from 3 nodes
-    - Specifications: CPU/Memory request and limit values for MySQL members
-    - Storage Class: select a storage class of type TopoLVM
-    - Storage Size: evaluate storage needs based on business requirements
+        - Number of Replicas: recommended to start from 3 nodes
+        - Specifications: CPU/Memory request and limit values for MySQL members
+        - Storage Class: select a storage class of type TopoLVM
+        - Storage Size: evaluate storage needs based on business requirements
 
     6. Account Resources:
 
-    - Configure root administrator password.
+        - Configure root administrator password.
 
     7. Connection Configuration:
 
-    - Access Method: External Access / Internal Access
+        - Access Method: External Access / Internal Access
 
     8. Click **Create** and wait for the status to change to Running.
   </Tab>
