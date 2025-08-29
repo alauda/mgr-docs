@@ -9,6 +9,46 @@ title: Upgrade
 
 # Upgrade
 
+:::note
+
+This document provides the upgrade path principles and supported version compatibility for Alauda Database Service for MySQL-MGR.
+
+:::
+
+
+## Compatibility Matrix
+
+The table below lists supported versions of the Alauda Database Service for MySQL-MGR and its key components:
+
+| Alauda MySQL-MGR package version |  MySQL server versions  | Kubernetes Versions |
+|:------------------------:|:------------------------------:|:-------------------:|
+| v4.1.x                   | 8.0                 | 1.25+               |
+| v4.0.x                   | 8.0                 | 1.25+               |
+
+Please refer to **[Release Notes](./release_notes.mdx)** for version-specific changes, new features and deprecations information.
+
+## Prerequisites
+
+Before initiating an upgrade, please ensure the following:
+
+1. **Version Compatibility**: The current server version can be supported by the upgrade target version of the operator.
+2. **Component Health**: MySQL-MGR instances are in a `Ready` state.
+3. **Resource Availability**: The cluster has sufficient resources to support the upgrade process.
+
+## Upgrade Path Guidelines
+
+### Consecutive Minor Upgrade
+- **Description**: Upgrade step-by-step through consecutive minor versions.
+- **Example**: `4.1.x → 4.2.x → 4.3.x`
+
+### Patch-Level Upgrade
+- **Description**: Any upgrade between patch versions of the same minor version are supported.
+- **Example**: `4.1.3 → 4.1.7`
+
+
+## Upgrade Strategy
+
 Alauda Database Service for MySQL-MGR will execute upgrades based on the configured upgrade strategy:
 - **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
 - **Manual** : Requires manual approval before initiating the upgrade process.
+
