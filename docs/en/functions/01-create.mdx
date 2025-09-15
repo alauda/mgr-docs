@@ -89,22 +89,22 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
                 default_storage_engine: InnoDB
                 default_time_zone: +08:00
                 disabled_storage_engines: MyISAM
-                event_scheduler: ON
-                general_log: OFF
-                innodb_adaptive_flushing: ON
-                innodb_adaptive_hash_index: OFF
+                event_scheduler: "ON"
+                general_log: "OFF"
+                innodb_adaptive_flushing: "ON"
+                innodb_adaptive_hash_index: "OFF"
                 innodb_autoinc_lock_mode: "2"
                 innodb_buffer_pool_chunk_size: "134217728"
-                innodb_buffer_pool_dump_at_shutdown: ON
+                innodb_buffer_pool_dump_at_shutdown: "ON"
                 innodb_buffer_pool_dump_pct: "25"
                 innodb_buffer_pool_instances: "2"
-                innodb_buffer_pool_load_abort: OFF
-                innodb_buffer_pool_load_at_startup: ON
+                innodb_buffer_pool_load_abort: "OFF"
+                innodb_buffer_pool_load_at_startup: "ON"
                 innodb_buffer_pool_size: 1536M
-                innodb_deadlock_detect: ON
-                innodb_disable_sort_file_cache: OFF
+                innodb_deadlock_detect: "ON"
+                innodb_disable_sort_file_cache: "OFF"
                 innodb_fast_shutdown: "1"
-                innodb_file_per_table: ON
+                innodb_file_per_table: "ON"
                 innodb_flush_log_at_trx_commit: "1"
                 innodb_flush_method: O_DIRECT_NO_FSYNC
                 innodb_flush_neighbors: "0"
@@ -120,13 +120,13 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
                 innodb_read_io_threads: "4"
                 innodb_redo_log_capacity: 1G
                 innodb_rollback_segments: "128"
-                innodb_strict_mode: ON
+                innodb_strict_mode: "ON"
                 innodb_thread_concurrency: "5"
-                innodb_undo_log_truncate: ON
+                innodb_undo_log_truncate: "ON"
                 innodb_write_io_threads: "4"
                 interactive_timeout: "3600"
                 log_bin: bin
-                log_bin_trust_function_creators: OFF
+                log_bin_trust_function_creators: "OFF"
                 log_output: FILE
                 loose_group_replication_communication_max_message_size: "10485760"
                 loose_group_replication_exit_state_action: READ_ONLY
@@ -134,7 +134,7 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
                 loose_group_replication_flow_control_certifier_threshold: "1000"
                 loose_group_replication_member_expel_timeout: "5"
                 loose_group_replication_message_cache_size: 256M
-                loose_group_replication_paxos_single_leader: ON
+                loose_group_replication_paxos_single_leader: "ON"
                 loose_group_replication_poll_spin_loops: "0"
                 loose_group_replication_transaction_size_limit: "150000000"
                 loose_group_replication_unreachable_majority_timeout: "0"
@@ -145,13 +145,13 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
                 max_connections: "512"
                 max_heap_table_size: 16M
                 max_prepared_stmt_count: "8192"
-                performance_schema: ON
+                performance_schema: "ON"
                 replica_parallel_type: LOGICAL_CLOCK
                 replica_parallel_workers: "4"
-                skip_external_locking: ON
-                skip_name_resolve: ON
+                skip_external_locking: "ON"
+                skip_name_resolve: "ON"
                 sort_buffer_size: "262144"
-                sql_generate_invisible_primary_key: ON
+                sql_generate_invisible_primary_key: "ON"
                 sql_mode: NO_ENGINE_SUBSTITUTION
                 sync_binlog: "1"
                 table_definition_cache: "2000"
