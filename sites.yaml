@@ -1,3 +1,3 @@
 - name: acp
   base: /container_platform
-  version: "cherry-pick-08bd8da"
+  version: "fix-mysql-plugin-name-master"
