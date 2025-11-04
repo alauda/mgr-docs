@@ -9,6 +9,36 @@ title: Upgrade
 
 # Upgrade
 
-Alauda Database Service for MySQL-MGR will execute upgrades based on the configured upgrade strategy:
-- **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
-- **Manual** : Requires manual approval before initiating the upgrade process.
+Alauda Database for MySQL supports two primary upgrade methods:
+1. **Platform Upgrade**: Upgrades that occur automatically when the platform itself is upgraded, provided the platform installation package includes a newer version of Alauda Database for MySQL.
+2. **Manual Package Upload**: Upgrades initiated by manually uploading a new version of the Alauda Database for MySQL package to the platform.
+
+## Platform Upgrade
+
+When upgrading the Alauda platform, if the installation package includes a newer version of Alauda Database for MySQL, the database component will be upgraded automatically as part of the platform upgrade process.
+
+**Upgrade Steps**:
+
+Refer to the Alauda Application Services upgrade documentation for detailed instructions:
+<ExternalSiteLink name="acp" href="/appservice/upgrade.html" children="Alauda Application Services Upgrade" />
+
+## Manual Package Upgrade
+
+You can upgrade Alauda Database for MySQL independently by uploading a new version of the package to the platform.
+
+:::tip
+For information about version support and lifecycle, refer to [Lifecycle Policy](./lifecycle_policy.mdx).
+:::
+
+**Upgrade Steps**:
+
+1. **Upload the new Alauda Database for MySQL package**:
+
+   Follow the package upload documentation:
+   <ExternalSiteLink name="acp" href="/extend/upload_package" children="Uploading Packages" />
+
+2. **Execute the upgrade based on your upgrade strategy**:
+
+   The upgrade process follows your configured upgrade strategy:
+   - **Automatic**: The system automatically upgrades components when new versions are detected.
+   - **Manual**: Requires manual approval before proceeding with the upgrade.
