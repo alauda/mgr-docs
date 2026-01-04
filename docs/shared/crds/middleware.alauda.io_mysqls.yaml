@@ -4154,7 +4154,7 @@ spec:
                                 enableServiceLinks:
                                   description: |-
                                     EnableServiceLinks indicates whether information about services should be injected into pod's
-                                    environment variables, matching the syntax of Docker links.
+                                    environment variables, matching the environment variable syntax of legacy container links.
                                     Optional: Defaults to true.
                                   type: boolean
                                 ephemeralContainers:
@@ -12076,7 +12076,7 @@ spec:
                     description: UseJemalloc means use jemalloc for MySQL
                     type: boolean
                   version:
-                    description: Version defines the MySQL Docker image version.
+                    description: Version defines the MySQL container image version.
                     type: string
                   volumeClaimTemplate:
                     description: VolumeClaimTemplate allows a user to specify how
