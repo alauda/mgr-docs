@@ -26,7 +26,7 @@ If your platform has **MySQL-PXC** instances, complete the following **before up
 
 <Steps>
 
-#### 1. Identify all PXC instances
+### 1. Identify all PXC instances
 
 Run the following command on each cluster to list all PXC instances:
 
@@ -36,14 +36,14 @@ kubectl get perconaxtradbcluster -A
 
 If no PXC instances are found, skip the remaining steps.
 
-#### 2. Assess migration urgency
+### 2. Assess migration urgency
 
 | Scenario | Action Required |
 |----------|---------------|
 | Upgrading to MySQL Operator **4.2.x** | PXC remains managed. Plan migration before future 4.3+ upgrade. |
 | Upgrading to MySQL Operator **4.3.0+** | PXC becomes unmanaged immediately after operator upgrade. **Must migrate before upgrading.** |
 
-#### 3. Run pre-migration checks
+### 3. Run pre-migration checks
 
 Before migrating, run the compatibility analysis on each PXC instance:
 
@@ -53,7 +53,7 @@ Before migrating, run the compatibility analysis on each PXC instance:
 
 For detailed instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc) (Step 1 & Step 2).
 
-#### 4. Create target MGR instances
+### 4. Create target MGR instances
 
 Create MySQL-MGR 8.0 instances as migration targets **before** starting the operator upgrade. Follow the [Instance Creation Guide](./functions/01-create) with these key settings:
 
@@ -61,22 +61,22 @@ Create MySQL-MGR 8.0 instances as migration targets **before** starting the oper
 - **Storage**: 2-3x the size of the source PXC database
 - **Resource allocation**: Same or higher than source PXC
 
-#### 5. Perform full backup
+### 5. Perform full backup
 
 Take a full logical backup (`mysqldump`) of each PXC instance before migration. Verify the backup is restorable. For detailed instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc).
 
-#### 6. Migrate data
+### 6. Migrate data
 
 Execute the migration using `mysqldump` logical backup and restore. For step-by-step instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc).
 
-#### 7. Verify migration
+### 7. Verify migration
 
 After migration, verify:
 - All user databases are present in the MGR instance.
 - Application connections point to the new MGR endpoint.
 - Data integrity checks pass (row counts, checksum).
 
-#### 8. Decommission PXC instances
+### 8. Decommission PXC instances
 
 After successful migration and verification, delete the PXC custom resources:
 
