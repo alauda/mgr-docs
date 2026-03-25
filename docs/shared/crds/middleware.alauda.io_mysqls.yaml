@@ -21,9 +21,6 @@ spec:
     - jsonPath: .status.state
       name: State
       type: string
-    - jsonPath: .status.pxc.state
-      name: pxcState
-      type: string
     - jsonPath: .status.mgr.state
       name: mgrState
       type: string
@@ -1495,6 +1492,10 @@ spec:
                   jemallocConf:
                     description: JemallocConf means the jemalloc configuration
                     type: string
+                  majorViewIDQuorum:
+                    description: MajorViewIDQuorum means use the major view ID to
+                      determine the quorum
+                    type: boolean
                   members:
                     description: |-
                       Members defines the number of MySQL instances in a cluster.
@@ -4154,7 +4155,7 @@ spec:
                                 enableServiceLinks:
                                   description: |-
                                     EnableServiceLinks indicates whether information about services should be injected into pod's
-                                    environment variables, matching the environment variable syntax of legacy container links.
+                                    environment variables, matching the syntax of Docker links.
                                     Optional: Defaults to true.
                                   type: boolean
                                 ephemeralContainers:
@@ -10220,6 +10221,10 @@ spec:
                   podCIDR:
                     description: PodCIDR allows a user to specify custom CIDR.
                     type: string
+                  podManagementPolicy:
+                    description: PodManagementPolicy defines the policy for creating
+                      pods under the statefulset
+                    type: string
                   readOnlyRootFilesystem:
                     description: ReadOnlyRootFilesystem means the root filesystem
                       is read-only
@@ -12076,7 +12081,7 @@ spec:
                     description: UseJemalloc means use jemalloc for MySQL
                     type: boolean
                   version:
-                    description: Version defines the MySQL container image version.
+                    description: Version defines the MySQL Docker image version.
                     type: string
                   volumeClaimTemplate:
                     description: VolumeClaimTemplate allows a user to specify how
@@ -12517,9 +12522,52 @@ spec:
                   spec.params instead'
                 nullable: true
                 type: object
+              password:
+                description: 'Password Deprecated: this field is deprecated'
+                format: byte
+                type: string
               pause:
                 description: Pause is the flag to pause the MySQL cluster
                 type: boolean
+              runAsRoot:
+                description: RunAsRoot is the flag to run MySQL Server as root
+                type: boolean
+              s3Config:
+                additionalProperties:
+                  properties:
+                    awsAccessKeyId:
+                      description: AwsAccessKeyId is the access key id of the AWS
+                      format: byte
+                      type: string
+                    awsSecretAccessKey:
+                      description: AwsSecretAccessKey is the secret access key of
+                        the AWS
+                      format: byte
+                      type: string
+                    backupStorage:
+                      description: ConfigBackupStorage is the configuration of the
+                        backup storage
+                      properties:
+                        bucket:
+                          description: Bucket is the bucket of the backup storage
+                          type: string
+                        name:
+                          description: Name is the name of the backup storage
+                          type: string
+                        namespace:
+                          description: Namespace is the namespace of the backup storage
+                          type: string
+                      required:
+                      - bucket
+                      - name
+                      - namespace
+                      type: object
+                  required:
+                  - awsAccessKeyId
+                  - awsSecretAccessKey
+                  type: object
+                description: S3Config is the configuration of S3 for backup
+                type: object
               upgradeOption:
                 description: UpgradeOption is the option to upgrade the MySQL cluster
                 properties:
