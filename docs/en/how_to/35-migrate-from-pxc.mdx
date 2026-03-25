@@ -406,11 +406,19 @@ The application must remain stopped (or strictly read-only) from this point unti
          AND Host != 'localhost';
      ")
 
-   # For each user, export grants from source and apply on target
+   # For each user, create user and apply grants on target
    for user_host in ${USERS}; do
      echo "Migrating user: ${user_host}..."
 
-     # Get CREATE USER and GRANT statements from source
+     # Get CREATE USER statement (includes auth plugin and password hash)
+     CREATEUSER=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+       mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "SHOW CREATE USER ${user_host};")
+
+     # Create user on target
+     kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+       mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "${CREATEUSER};"
+
+     # Get GRANT statements from source
      GRANTS=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
        mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "SHOW GRANTS FOR ${user_host};")
 
@@ -419,12 +427,6 @@ The application must remain stopped (or strictly read-only) from this point unti
        kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
          mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "${grant};"
      done
-
-     # Ensure mysql_native_password for compatibility with older clients
-     kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-       mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
-         ALTER USER ${user_host} IDENTIFIED WITH mysql_native_password BY 'CHANGE_ME';
-       "
    done
 
    # Flush privileges on target
@@ -432,8 +434,14 @@ The application must remain stopped (or strictly read-only) from this point unti
      mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "FLUSH PRIVILEGES;"
    ```
 
-   :::warning
-   The `ALTER USER ... BY 'CHANGE_ME'` resets passwords. Replace `'CHANGE_ME'` with each user's actual password, or have users reset their passwords after migration.
+   :::tip
+   `SHOW CREATE USER` preserves the original authentication plugin and password hash, so users can log in with their existing passwords after migration. If you need to switch to `mysql_native_password` for client compatibility, run:
+   ```bash
+   kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+       ALTER USER ${user_host} IDENTIFIED WITH mysql_native_password BY '<password>';
+     "
+   ```
    :::
 
 :::tip
