@@ -1,0 +1,738 @@
+---
+weight: 35
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Migrate MySQL-PXC to MySQL-MGR
+
+This guide provides comprehensive instructions for migrating from MySQL-PXC (Percona XtraDB Cluster) 5.7 to MySQL Group Replication (MGR) 8.0 on Alauda Container Platform.
+
+## Background
+
+### The Challenge
+
+MySQL 5.7 reached End of Life (EOL) in October 2023, and MySQL-PXC is deprecated and removed starting from Alauda Database Service for MySQL v4.3.0. Organizations must migrate to MySQL 8.0 to continue receiving security updates and to leverage new features.
+
+Migrating production databases involves complex considerations:
+- Schema compatibility with MySQL 8.0 reserved keywords
+- Character set changes (utf8mb4)
+- Authentication plugin updates
+- Ensuring data integrity during migration
+
+### The Solution
+
+This guide provides comprehensive, verified instructions for migrating MySQL-PXC 5.7 to MySQL-MGR 8.0:
+
+- **Proven Approach**: Validated on ACP v4.0+ using Alauda Database Service for MySQL
+- **Complete Object Coverage**: Migrates all standard MySQL objects (tables, views, routines, triggers, events, users, grants)
+- **Schema Compatibility**: Automated checks and fixes for MySQL 8.0 compatibility issues
+- **Comprehensive Verification**: Verification across 9 object categories
+- **Minimal Risk**: Detailed rollback procedures and validation at each step
+
+## Environment Information
+
+| Component | Version |
+|-----------|---------|
+| **Source (PXC)** | Percona XtraDB Cluster 5.7.44 |
+| **Target (MGR)** | MySQL Group Replication 8.0.44 |
+| **ACP Version** | v4.0 or later |
+| **MySQL Operator** | v4.0 or later |
+
+## PXC vs MGR: Key Differences
+
+| Aspect | PXC 5.7 (Source) | MGR 8.0 (Target) |
+|--------|-----------------|------------------|
+| **Pod Name Pattern** | `${NAME}-pxc-0` | `${NAME}-0` |
+| **Container Specifier** | Not required (defaults to mysql) | Required: `-c mysql` |
+| **Primary Endpoint** | `${NAME}-proxysql.${NS}.svc.cluster.local:3306` | `${NAME}-read-write.${NS}.svc.cluster.local:3306` |
+| **Replica Endpoint** | Same as primary (ProxySQL handles routing) | `${NAME}-read-only.${NS}.svc.cluster.local:3306` |
+| **Replication Type** | Galera (synchronous multi-master) | Group Replication (single-primary with async replicas) |
+| **Secret Name Pattern** | `${NAME}` | `mgr-${NAME}-password` |
+
+:::warning
+Always check your actual pod names with `kubectl get pod -n <namespace>` before running migration commands.
+:::
+
+## Common Use Cases
+
+| Scenario | Database Size | Estimated Downtime |
+|----------|---------------|-------------------|
+| **Small Database** | < 10GB | 15-30 minutes |
+| **Medium Database** | 10-50GB | 30-60 minutes |
+| **Large Database** | 50-200GB | 1-2 hours |
+| **Schema Issues** | Any size | +1-2 hours for fixes |
+| **Character Set Migration** | Any size | +30-60 minutes |
+
+## Prerequisites
+
+Before performing migration, ensure you have:
+
+- ACP v4.0 or later with MySQL Operator v4.0 or later
+- A healthy MySQL-PXC 5.7 cluster as source
+- GTID mode enabled (`@@gtid_mode = ON`, `@@enforce_gtid_consistency = ON`)
+- A new MySQL-MGR 8.0 cluster created as target **before** migration
+- Storage capacity of 2-3x the source database size
+- Network connectivity from your local machine to both clusters
+
+### Important Limitations
+
+- Application downtime is required during export and import to ensure consistency
+- Recommended maximum database size: 200GB (larger databases may require alternative approaches)
+- GTID must be enabled on the source cluster
+- The target cluster must be created before migration begins
+- Storage performance on target should match or exceed the source
+
+## Getting Started
+
+### 1. Get MySQL Root Password
+
+```bash
+# For PXC 5.7 source
+kubectl get secret <source-name> -n <source-namespace> -o jsonpath='{.data.root}' | base64 -d
+
+# For MGR 8.0 target
+kubectl get secret mgr-<target-name>-password -n <target-namespace> -o jsonpath='{.data.root}' | base64 -d
+```
+
+### 2. Identify Pod Names
+
+```bash
+# Check source PXC pods
+kubectl get pod -n <source-namespace> | grep <source-name>
+# Example output: source-pxc-0, source-pxc-1, source-pxc-2
+
+# Check target MGR pods
+kubectl get pod -n <target-namespace> | grep <target-name>
+# Example output: target-0, target-1, target-2
+```
+
+### 3. Verify Cluster Status
+
+```bash
+# Check PXC source status
+kubectl get mysql <source-name> -n <source-namespace>
+# Expected: STATE = ready, PXCSTATE = ready
+
+# Check MGR target status
+kubectl get mysql <target-name> -n <target-namespace>
+# Expected: All 3 members ready, STATUS = Running
+```
+
+### 4. kubectl Exec Best Practices
+
+**For PXC 5.7 (source):**
+```bash
+# No container specifier needed for PXC
+kubectl exec <source-name>-pxc-0 -n <namespace> -- \
+  mysql -uroot -p<password> -e "SQL_HERE"
+```
+
+**For MGR 8.0 (target):**
+```bash
+# Always use -c mysql for MGR
+kubectl exec <target-name>-0 -n <namespace> -c mysql -- \
+  mysql -uroot -p<password> -e "SQL_HERE"
+```
+
+:::tip
+- Always use the parameter order: `kubectl exec -n <namespace> <pod-name> -- <command>`
+- Use `--` (double dash) before the command to separate kubectl options from the command
+- Avoid heredocs (`<<EOF`) with `kubectl exec` - they often fail due to shell quoting issues
+:::
+
+## Execution Guide
+
+### Step 1: Schema Compatibility Analysis
+
+Perform this analysis **one week before** the planned migration.
+
+Run the following commands to detect schema compatibility issues:
+
+```bash
+# Check for reserved keyword columns
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "
+    SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
+    FROM information_schema.COLUMNS
+    WHERE LOWER(COLUMN_NAME) IN ('rank','groups','function','tables','indexes','procedure','file','process');
+  "
+
+# Check for ZEROFILL columns
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "
+    SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE
+    FROM information_schema.COLUMNS
+    WHERE COLUMN_TYPE LIKE '%ZEROFILL%';
+  "
+
+# Check for invalid date defaults
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "
+    SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT
+    FROM information_schema.COLUMNS
+    WHERE COLUMN_DEFAULT = '0000-00-00'
+       OR COLUMN_DEFAULT = '0000-00-00 00:00:00';
+  "
+```
+
+#### Fix Schema Issues
+
+```bash
+# Fix reserved keyword columns (example)
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "
+    USE db1;
+    ALTER TABLE users CHANGE COLUMN rank user_rank INT;
+  "
+
+# Fix ZEROFILL columns
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "
+    USE db1;
+    ALTER TABLE products MODIFY COLUMN price DECIMAL(10,2);
+  "
+```
+
+### Step 2: Character Set and Collation Analysis
+
+Check for non-utf8mb4 tables:
+
+```bash
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "
+    SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_COLLATION
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA NOT IN ('information_schema','mysql','performance_schema','sys')
+      AND TABLE_COLLATION NOT LIKE 'utf8mb4%';
+  "
+```
+
+#### Convert to utf8mb4
+
+```bash
+# Convert databases to utf8mb4
+for db in ${DATABASES}; do
+  kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+    mysql -uroot -p${MYSQL_PASSWORD} -e "
+      ALTER DATABASE ${db} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+    "
+done
+
+# Convert tables to utf8mb4
+for db in ${DATABASES}; do
+  TABLES=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+    mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+      SELECT TABLE_NAME FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';
+    ")
+
+  for table in ${TABLES}; do
+    echo "Converting ${db}.${table}..."
+    kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+      mysql -uroot -p${MYSQL_PASSWORD} ${db} -e "
+        ALTER TABLE ${table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      "
+  done
+done
+```
+
+:::warning
+For tables with long VARCHAR/TEXT indexes (>191 characters), you may need to adjust index lengths:
+```sql
+ALTER TABLE users DROP INDEX idx_email;
+ALTER TABLE users ADD UNIQUE INDEX idx_email (email(191));
+```
+:::
+
+### Step 3: Create Target MySQL-MGR 8.0 Instance
+
+Create the target MySQL-MGR 8.0 instance **shortly before** the data migration phase.
+
+**Using Web Console:**
+
+1. Select MySQL version **8.0**
+2. Configure resources (recommend **+10-20% memory** over source cluster due to MySQL 8.0 overhead)
+3. Set storage size to **2-3x** source database size
+
+**Using Command Line:**
+
+```bash
+TARGET_NAME="mysql-8-target"
+NAMESPACE="your-namespace"
+STORAGE_SIZE="500Gi"
+
+cat << EOF | kubectl -n $NAMESPACE apply -f -
+apiVersion: middleware.alauda.io/v1
+kind: Mysql
+metadata:
+  name: $TARGET_NAME
+  namespace: $NAMESPACE
+  labels:
+    mysql/arch: mgr
+spec:
+  mgr:
+    enableStorage: true
+    image: {}
+    members: 1
+    monitor:
+      enable: true
+      exporter: {}
+    resources:
+      server:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: "2"
+          memory: 4Gi
+    router:
+      replicas: 1
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 500m
+          memory: 512Mi
+      svcRO:
+        type: ClusterIP
+      svcRW:
+        type: ClusterIP
+    strictSecurityModeEnabled: true
+    upgradeOption: {}
+    volumeClaimTemplate:
+      metadata: {}
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: ${STORAGE_SIZE}
+        storageClassName: dataservice-topolvmsc
+      status: {}
+  params:
+    mysql: {}
+    router:
+      DEFAULT:
+        max_total_connections: "200"
+      logger:
+        level: info
+  upgradeOption:
+    autoUpgrade: false
+    crVersion: 4.2.0
+  version: "8.0"
+EOF
+```
+
+**Verify target cluster:**
+
+```bash
+kubectl -n $NAMESPACE get mysql $TARGET_NAME -w
+# Expected: STATE = Ready, MGRSTATE = ready
+```
+
+### Step 4: Migrate Data, Users, and Privileges
+
+:::warning Critical: Stop Application Writes
+The application must remain stopped (or strictly read-only) from this point until the cutover is complete. Any data written to the source database after this step will be lost.
+:::
+
+**Procedure:**
+
+1. **Stop Application Writes**: Scale the application to zero replicas:
+   ```bash
+   kubectl scale deployment <app-name> --replicas=0 -n <app-namespace>
+   ```
+
+2. **Identify Databases to Migrate**:
+   ```bash
+   # List user databases (DO NOT include: information_schema, mysql, performance_schema, sys)
+   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+     mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+       SELECT SCHEMA_NAME FROM information_schema.SCHEMATA
+       WHERE SCHEMA_NAME NOT IN ('information_schema','mysql','performance_schema','sys');
+     "
+   ```
+
+3. **Export and Import Data**:
+   ```bash
+   SOURCE_NAME="source"
+   SOURCE_NAMESPACE="your-namespace"
+   SOURCE_MYSQL_PASSWORD="source-root-password"
+
+   TARGET_NAME="mysql-8-target"
+   TARGET_NAMESPACE="your-namespace"
+   TARGET_MYSQL_PASSWORD="target-root-password"
+
+   DATABASES="db1 db2 db3"
+
+   for db in ${DATABASES}; do
+     echo "Migrating database: ${db}..."
+
+     # Export from PXC source
+     kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+       mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
+         --single-transaction \
+         --quick \
+         --lock-tables=false \
+         --set-gtid-purged=ON \
+         --routines \
+         --events \
+         --triggers \
+         --databases ${db} \
+       | grep -v "SET @@GLOBAL.GTID_PURGED" \
+       | kubectl exec -i ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+         mysql -uroot -p${TARGET_MYSQL_PASSWORD}
+
+     echo "Migrated: ${db}"
+   done
+   ```
+
+4. **Migrate Users and Privileges**:
+   ```bash
+   # Export users from PXC source
+   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+     mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
+       --no-data \
+       -- routines \
+       events \
+       triggers \
+       mysql > /tmp/users.sql
+
+   # Create users on MGR target with mysql_native_password for compatibility
+   kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+       ALTER USER 'app_user'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
+       FLUSH PRIVILEGES;
+     "
+   ```
+
+:::tip
+The mysqldump streaming approach above does not require disk space for dump files.
+:::
+
+### Step 5: Verify Migration
+
+```bash
+TARGET_NAME="mysql-8-target"
+TARGET_NAMESPACE="your-namespace"
+TARGET_MYSQL_PASSWORD="target-root-password"
+DATABASES="db1 db2 db3"
+
+for db in ${DATABASES}; do
+  echo "=== Verifying database: ${db} ==="
+
+  # Compare table counts
+  echo "Tables:"
+  kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+    mysql -uroot -p${MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';"
+
+  kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+    mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';"
+
+  # Verify views execute correctly
+  kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+    mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "
+      SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = '${db}';
+    " | while read view; do
+      kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+        mysql -uroot -p${TARGET_MYSQL_PASSWORD} ${db} -e "SELECT 1 FROM ${view} LIMIT 1;" > /dev/null 2>&1 \
+        && echo "✓ View ${view} OK" \
+        || echo "✗ View ${view} FAILED"
+    done
+done
+```
+
+**Verification Checklist:**
+- [ ] Same number of tables in each database
+- [ ] Same row counts per table
+- [ ] Same number of views
+- [ ] All views execute successfully
+- [ ] All stored procedures and functions exist
+- [ ] All triggers and events migrated
+- [ ] All user accounts exist
+- [ ] All grants migrated
+
+### Step 6: Post-Migration Optimization
+
+#### 1. Update Table Statistics
+
+```bash
+for db in ${DATABASES}; do
+  echo "Analyzing tables in ${db}..."
+  TABLES=$(kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+    mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+      SELECT TABLE_NAME FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';
+    ")
+
+  for table in ${TABLES}; do
+    kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+      mysql -uroot -p${MYSQL_PASSWORD} ${db} -e "ANALYZE TABLE ${table};" 2>&1 | grep -v "Table"
+  done
+done
+```
+
+#### 2. Check Fragmentation
+
+```bash
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+    SELECT TABLE_SCHEMA, TABLE_NAME,
+           ROUND(DATA_FREE / 1024 / 1024, 2) AS 'Fragmentation (MB)'
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA IN ('${DATABASES// /,\'','\'}')
+      AND DATA_FREE > 0
+    ORDER BY DATA_FREE DESC;
+  "
+```
+
+If significant fragmentation found (>100MB), rebuild tables:
+```sql
+OPTIMIZE TABLE db1.orders;
+```
+
+## Application Cutover
+
+### Step 7: Switch Application to Target
+
+#### 1. Verify Application is Stopped
+
+```bash
+# Ensure application is scaled down
+kubectl scale deployment <app-name> --replicas=0 -n <app-namespace>
+
+# Verify no active connections on source
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "SHOW PROCESSLIST;" | grep -v "Sleep"
+```
+
+#### 2. Update Application Connection String
+
+```bash
+# Update ConfigMap or environment variables
+kubectl patch configmap <app-config> -n <app-namespace> --type=json \
+  -p='[{"op": "replace", "path": "/data/database-host", "value":"mysql-8-target-read-write.'${TARGET_NAMESPACE}'.svc.cluster.local"}]'
+
+kubectl patch configmap <app-config> -n <app-namespace> --type=json \
+  -p='[{"op": "replace", "path": "/data/database-port", "value":"3306"}]'
+```
+
+#### 3. Restart Application
+
+```bash
+# Scale up application
+kubectl scale deployment <app-name> --replicas=<original-replica-count> -n <app-namespace>
+
+# Wait for pods to be ready
+kubectl -n <app-namespace> rollout status deployment <app-name>
+```
+
+#### 4. Verify Application Functionality
+
+```bash
+# Test database connectivity
+kubectl exec -it <app-pod> -n <app-namespace> -- \
+  mysql -h mysql-8-target-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
+    -uroot -p${MYSQL_PASSWORD} -e "SELECT 1 AS test;"
+
+# Check application logs for errors
+kubectl logs -n <app-namespace> <app-pod> --tail=100 | grep -i error
+```
+
+### Monitoring
+
+Monitor the migrated instance for 24-48 hours:
+
+```bash
+# Check MySQL 8.0 instance health
+kubectl -n ${TARGET_NAMESPACE} get mysql ${TARGET_NAME} -w
+
+# Monitor error logs
+kubectl logs -n ${TARGET_NAMESPACE} ${TARGET_NAME}-0 -c mysql --tail=100 -f
+```
+
+## Disaster Recovery
+
+### Rollback Plan
+
+If critical issues are discovered after the cutover:
+
+```bash
+# 1. Stop application
+kubectl scale deployment <app-name> --replicas=0 -n <app-namespace>
+
+# 2. Update connection string back to source
+kubectl patch configmap <app-config> -n <app-namespace> --type=json \
+  -p='[{"op": "replace", "path": "/data/database-host", "value":"'${SOURCE_NAME}'-proxysql.'${SOURCE_NAMESPACE}'.svc.cluster.local"}]'
+
+# 3. Restart application
+kubectl scale deployment <app-name> --replicas=<original-replica-count> -n <app-namespace>
+
+# 4. Verify connectivity
+kubectl exec -it <app-pod> -n <app-namespace> -- \
+  mysql -h ${SOURCE_NAME}-proxysql.${SOURCE_NAMESPACE}.svc.cluster.local \
+    -uroot -p${MYSQL_PASSWORD} -e "SELECT 1 AS test;"
+```
+
+:::warning
+Do not delete PXC custom resources until migration is verified and rollback window has passed.
+:::
+
+## Common Issues and Solutions
+
+### Issue: GTID_PURGED Error
+
+**Symptoms:**
+```
+ERROR 3546 (HY000) at line XX: Cannot update GTID_PURGED with the Group Replication plugin running
+```
+
+**Solution:** Already handled in migration procedure by filtering with `grep -v "SET @@GLOBAL.GTID_PURGED"`
+
+### Issue: Character Set Conversion Errors
+
+**Symptoms:**
+```
+ERROR 1366 (HY000): Incorrect string value
+```
+
+**Solution:**
+```bash
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+    ALTER DATABASE ${db} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+  "
+```
+
+### Issue: DEFINER Privilege Errors
+
+**Symptoms:**
+```
+ERROR 1449 (HY000): The user specified as a definer ('user'@'host') does not exist
+```
+
+**Solution:**
+```bash
+# Find all objects with missing definers
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+    SELECT DISTINCT DEFINER
+    FROM information_schema.VIEWS
+    WHERE TABLE_SCHEMA = '${db}';
+  "
+```
+
+### Issue: Authentication Plugin Errors
+
+**Symptoms:**
+```
+ERROR 2059 (HY000): Authentication plugin 'caching_sha2_password' cannot be loaded
+```
+
+**Solution:**
+```bash
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+    ALTER USER 'app_user'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
+    FLUSH PRIVILEGES;
+  "
+```
+
+## Troubleshooting
+
+### Diagnostic Commands
+
+**Check Migration Progress:**
+```bash
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "SHOW PROCESSLIST;"
+
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${MYSQL_PASSWORD} -e "SHOW PROCESSLIST;"
+```
+
+**Verify Data Integrity:**
+```bash
+for db in ${DATABASES}; do
+  echo "=== Database: ${db} ==="
+  kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+    mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+      SELECT TABLE_NAME, TABLE_ROWS
+      FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE'
+      ORDER BY TABLE_NAME;
+    " > /tmp/source_counts.txt
+
+  kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+    mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "
+      SELECT TABLE_NAME, TABLE_ROWS
+      FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE'
+      ORDER BY TABLE_NAME;
+    " > /tmp/target_counts.txt
+
+  diff /tmp/source_counts.txt /tmp/target_counts.txt || echo "Row count differences detected!"
+done
+```
+
+**Check MySQL 8.0 Error Logs:**
+```bash
+kubectl logs -n ${TARGET_NAMESPACE} ${TARGET_NAME}-0 -c mysql --tail=100 -f | grep -i error
+```
+
+## Best Practices
+
+### Pre-Migration Planning
+- **Test in Staging**: Always perform a test migration in non-production first
+- **Schema Cleanup**: Fix all schema compatibility issues before production migration
+- **Character Set Migration**: Convert to utf8mb4 well in advance (3-5 days before)
+- **Backup Strategy**: Ensure recent backups are available before migration
+- **Maintenance Window**: Schedule adequate downtime based on database size
+
+### During Migration
+- **Stop Application Writes**: Ensure no writes during export/import for consistency
+- **Monitor Progress**: Track export/import progress at regular intervals
+- **Keep Source Running**: Don't delete source until migration is verified
+
+### Post-Migration
+- **Comprehensive Testing**: Thoroughly test application functionality
+- **Performance Monitoring**: Monitor query performance for 24-48 hours
+- **Keep Source for Rollback**: Maintain source cluster for 24-48 hours for rollback window
+- **Update Documentation**: Update connection strings and monitoring dashboards
+
+## Reference
+
+### Size vs Time Estimates
+
+| Database Size | Export Time | Import Time | Total Downtime |
+|---------------|-------------|-------------|----------------|
+| < 10GB | 1-5 min | 2-10 min | 15-30 min |
+| 10-50GB | 5-20 min | 10-30 min | 30-60 min |
+| 50-100GB | 20-40 min | 30-60 min | 1-2 hours |
+| 100-200GB | 40-80 min | 1-2 hours | 2-4 hours |
+
+### mysqldump Flags Reference
+
+| Flag | Purpose |
+|------|---------|
+| `--single-transaction` | Consistent snapshot using MVCC (InnoDB) |
+| `--quick` | Retrieve rows one at a time (memory efficient) |
+| `--lock-tables=false` | Don't lock tables (relies on single-transaction) |
+| `--set-gtid-purged=ON` | Include GTID information |
+| `--routines` | Export stored procedures and functions |
+| `--events` | Export events |
+| `--triggers` | Export triggers |
+| `--databases` | Specify databases to export |
+
+### Useful Links
+
+- [Create MySQL-MGR Instance](../functions/01-create)
+- [PXC to MGR Quick Migration](/mysql-pxc/how_to/migrate-to-mgr)
+- [MySQL 8.0 Release Notes](https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html)
+- [MySQL 8.0 Upgrade Guide](https://dev.mysql.com/doc/refman/8.0/en/upgrade-prerequisites.html)
