@@ -395,22 +395,46 @@ The application must remain stopped (or strictly read-only) from this point unti
 
 4. **Migrate Users and Privileges**:
    ```bash
-   # Export users from PXC source
-   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-     mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
-       --no-data \
-       --routines \
-       --events \
-       --triggers \
-       mysql > /tmp/users.sql
+   # List non-system users from PXC source
+   USERS=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+     mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
+       SELECT CONCAT('''', User, '''@''', Host, '''')
+       FROM mysql.user
+       WHERE User NOT IN ('root','mysql.sys','mysql.session','mysql.infoschema',
+                          'monitor','operator','clustercheck','xtrabackup','replication')
+         AND User NOT LIKE 'mysql.%'
+         AND Host != 'localhost';
+     ")
 
-   # Create users on MGR target with mysql_native_password for compatibility
+   # For each user, export grants from source and apply on target
+   for user_host in ${USERS}; do
+     echo "Migrating user: ${user_host}..."
+
+     # Get CREATE USER and GRANT statements from source
+     GRANTS=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+       mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "SHOW GRANTS FOR ${user_host};")
+
+     # Apply grants on target
+     echo "${GRANTS}" | while read grant; do
+       kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+         mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "${grant};"
+     done
+
+     # Ensure mysql_native_password for compatibility with older clients
+     kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+       mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+         ALTER USER ${user_host} IDENTIFIED WITH mysql_native_password BY 'CHANGE_ME';
+       "
+   done
+
+   # Flush privileges on target
    kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
-       ALTER USER 'app_user'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
-       FLUSH PRIVILEGES;
-     "
+     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "FLUSH PRIVILEGES;"
    ```
+
+   :::warning
+   The `ALTER USER ... BY 'CHANGE_ME'` resets passwords. Replace `'CHANGE_ME'` with each user's actual password, or have users reset their passwords after migration.
+   :::
 
 :::tip
 The mysqldump streaming approach above does not require disk space for dump files.
@@ -541,7 +565,7 @@ kubectl -n <app-namespace> rollout status deployment <app-name>
 
 ```bash
 # Test database connectivity
-kubectl exec -it <app-pod> -n <app-namespace> -- \
+kubectl exec <app-pod> -n <app-namespace> -- \
   mysql -h mysql-8-target-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
     -uroot -p${TARGET_MYSQL_PASSWORD} -e "SELECT 1 AS test;"
 
@@ -579,7 +603,7 @@ kubectl patch configmap <app-config> -n <app-namespace> --type=json \
 kubectl scale deployment <app-name> --replicas=<original-replica-count> -n <app-namespace>
 
 # 4. Verify connectivity
-kubectl exec -it <app-pod> -n <app-namespace> -- \
+kubectl exec <app-pod> -n <app-namespace> -- \
   mysql -h ${SOURCE_NAME}-proxysql.${SOURCE_NAMESPACE}.svc.cluster.local \
     -uroot -p${SOURCE_MYSQL_PASSWORD} -e "SELECT 1 AS test;"
 ```
