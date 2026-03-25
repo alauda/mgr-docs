@@ -156,7 +156,7 @@ Run the following commands to detect schema compatibility issues:
 ```bash
 # Check for reserved keyword columns
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
     FROM information_schema.COLUMNS
     WHERE LOWER(COLUMN_NAME) IN ('rank','groups','function','tables','indexes','procedure','file','process');
@@ -164,7 +164,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 
 # Check for ZEROFILL columns
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE
     FROM information_schema.COLUMNS
     WHERE COLUMN_TYPE LIKE '%ZEROFILL%';
@@ -172,7 +172,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 
 # Check for invalid date defaults
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_DEFAULT
     FROM information_schema.COLUMNS
     WHERE COLUMN_DEFAULT = '0000-00-00'
@@ -185,14 +185,14 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 ```bash
 # Fix reserved keyword columns (example)
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     USE db1;
     ALTER TABLE users CHANGE COLUMN rank user_rank INT;
   "
 
 # Fix ZEROFILL columns
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     USE db1;
     ALTER TABLE products MODIFY COLUMN price DECIMAL(10,2);
   "
@@ -204,7 +204,7 @@ Check for non-utf8mb4 tables:
 
 ```bash
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_COLLATION
     FROM information_schema.TABLES
     WHERE TABLE_SCHEMA NOT IN ('information_schema','mysql','performance_schema','sys')
@@ -218,7 +218,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 # Convert databases to utf8mb4
 for db in ${DATABASES}; do
   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-    mysql -uroot -p${MYSQL_PASSWORD} -e "
+    mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
       ALTER DATABASE ${db} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
     "
 done
@@ -226,7 +226,7 @@ done
 # Convert tables to utf8mb4
 for db in ${DATABASES}; do
   TABLES=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-    mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+    mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
       SELECT TABLE_NAME FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';
     ")
@@ -234,7 +234,7 @@ for db in ${DATABASES}; do
   for table in ${TABLES}; do
     echo "Converting ${db}.${table}..."
     kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-      mysql -uroot -p${MYSQL_PASSWORD} ${db} -e "
+      mysql -uroot -p${SOURCE_MYSQL_PASSWORD} ${db} -e "
         ALTER TABLE ${table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
       "
   done
@@ -353,7 +353,7 @@ The application must remain stopped (or strictly read-only) from this point unti
    ```bash
    # List user databases (DO NOT include: information_schema, mysql, performance_schema, sys)
    kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-     mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+     mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
        SELECT SCHEMA_NAME FROM information_schema.SCHEMATA
        WHERE SCHEMA_NAME NOT IN ('information_schema','mysql','performance_schema','sys');
      "
@@ -399,9 +399,9 @@ The application must remain stopped (or strictly read-only) from this point unti
    kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
      mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
        --no-data \
-       -- routines \
-       events \
-       triggers \
+       --routines \
+       --events \
+       --triggers \
        mysql > /tmp/users.sql
 
    # Create users on MGR target with mysql_native_password for compatibility
@@ -430,7 +430,7 @@ for db in ${DATABASES}; do
   # Compare table counts
   echo "Tables:"
   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-    mysql -uroot -p${MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';"
+    mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';"
 
   kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';"
@@ -466,14 +466,14 @@ done
 for db in ${DATABASES}; do
   echo "Analyzing tables in ${db}..."
   TABLES=$(kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-    mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+    mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "
       SELECT TABLE_NAME FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';
     ")
 
   for table in ${TABLES}; do
     kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-      mysql -uroot -p${MYSQL_PASSWORD} ${db} -e "ANALYZE TABLE ${table};" 2>&1 | grep -v "Table"
+      mysql -uroot -p${TARGET_MYSQL_PASSWORD} ${db} -e "ANALYZE TABLE ${table};" 2>&1 | grep -v "Table"
   done
 done
 ```
@@ -481,12 +481,16 @@ done
 #### 2. Check Fragmentation
 
 ```bash
+# Build properly-quoted comma-separated list
+DB_LIST=$(echo $DATABASES | sed "s/ /','/g")
+DB_LIST="'$DB_LIST'"
+
 kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
   mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
     SELECT TABLE_SCHEMA, TABLE_NAME,
            ROUND(DATA_FREE / 1024 / 1024, 2) AS 'Fragmentation (MB)'
     FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA IN ('${DATABASES// /,\'','\'}')
+    WHERE TABLE_SCHEMA IN ($DB_LIST)
       AND DATA_FREE > 0
     ORDER BY DATA_FREE DESC;
   "
@@ -509,7 +513,7 @@ kubectl scale deployment <app-name> --replicas=0 -n <app-namespace>
 
 # Verify no active connections on source
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "SHOW PROCESSLIST;" | grep -v "Sleep"
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "SHOW PROCESSLIST;" | grep -v "Sleep"
 ```
 
 #### 2. Update Application Connection String
@@ -539,7 +543,7 @@ kubectl -n <app-namespace> rollout status deployment <app-name>
 # Test database connectivity
 kubectl exec -it <app-pod> -n <app-namespace> -- \
   mysql -h mysql-8-target-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
-    -uroot -p${MYSQL_PASSWORD} -e "SELECT 1 AS test;"
+    -uroot -p${TARGET_MYSQL_PASSWORD} -e "SELECT 1 AS test;"
 
 # Check application logs for errors
 kubectl logs -n <app-namespace> <app-pod> --tail=100 | grep -i error
@@ -577,7 +581,7 @@ kubectl scale deployment <app-name> --replicas=<original-replica-count> -n <app-
 # 4. Verify connectivity
 kubectl exec -it <app-pod> -n <app-namespace> -- \
   mysql -h ${SOURCE_NAME}-proxysql.${SOURCE_NAMESPACE}.svc.cluster.local \
-    -uroot -p${MYSQL_PASSWORD} -e "SELECT 1 AS test;"
+    -uroot -p${SOURCE_MYSQL_PASSWORD} -e "SELECT 1 AS test;"
 ```
 
 :::warning
@@ -654,7 +658,7 @@ kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
   mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "SHOW PROCESSLIST;"
 
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-  mysql -uroot -p${MYSQL_PASSWORD} -e "SHOW PROCESSLIST;"
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "SHOW PROCESSLIST;"
 ```
 
 **Verify Data Integrity:**
@@ -662,7 +666,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 for db in ${DATABASES}; do
   echo "=== Database: ${db} ==="
   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-    mysql -uroot -p${MYSQL_PASSWORD} -N -e "
+    mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
       SELECT TABLE_NAME, TABLE_ROWS
       FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE'
@@ -733,6 +737,5 @@ kubectl logs -n ${TARGET_NAMESPACE} ${TARGET_NAME}-0 -c mysql --tail=100 -f | gr
 ### Useful Links
 
 - [Create MySQL-MGR Instance](../functions/01-create)
-- [PXC to MGR Quick Migration](/mysql-pxc/how_to/migrate-to-mgr)
 - [MySQL 8.0 Release Notes](https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html)
 - [MySQL 8.0 Upgrade Guide](https://dev.mysql.com/doc/refman/8.0/en/upgrade-prerequisites.html)
