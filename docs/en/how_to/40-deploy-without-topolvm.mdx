@@ -177,41 +177,50 @@ All PVs should show `Available` status before proceeding.
 - Create more PVs than the minimum required to accommodate scaling and reprovisioning. However, extra PVs do not help with failover: if a node is lost, the PVs bound to it cannot be migrated. Recovery from node loss requires manual reprovisioning and data resync.
 :::
 
-## Step 3 (Optional): Fix ClickHouse Storage on Read-Only Filesystems
+## Step 3 (Optional): Configure ClickHouse Storage Path on Read-Only Filesystems
 
 :::info
 This step is only needed if you have the query-analytics plugin deployed and want slow query logging / query analysis features. If you do not use query analytics, skip this step — MySQL-MGR instances will function normally without it.
 :::
 
-The query-analytics plugin deploys ClickHouse using host directory PVs with a hardcoded path (`/cpaas/ck`). On MicroOS or other systems with a read-only root filesystem, this causes ClickHouse pods to fail with:
+The query-analytics plugin deploys ClickHouse using a host directory PV. By default, the host path is `/cpaas/ck`. On MicroOS or other systems with a read-only root filesystem, this causes ClickHouse pods to fail with:
 
 ```
 mkdir /cpaas: read-only file system
 ```
 
-To fix this, modify the query-analytics instance (`qai` resource) after the query-analytics plugin is deployed:
+To fix this, set the `hostPath` field in the `RdsInstaller` CR's `spec.slowSQLCK` section to a writable path before deploying the query-analytics plugin:
 
-1. Find the `qai` resource and inspect its current configuration:
-
-    ```bash
-    kubectl get qai -A
-    kubectl get qai <qai-name> -n <namespace> -o yaml | grep -A5 slowsql
-    ```
-
-2. Edit the `qai` resource and set the `storageClassName` field under `slowsql` to your StorageClass:
+1. Find the `RdsInstaller` resource:
 
     ```bash
-    kubectl edit qai <qai-name> -n <namespace>
+    kubectl get rdsinstaller -A
     ```
 
-    Change the `slowsql` section's `storageClassName` to `mgr-local-pv` (or your StorageClass name).
+2. Edit the `RdsInstaller` to override the ClickHouse host path:
 
-3. Find and recreate the ClickHouse pods to pick up the new storage configuration:
+    ```bash
+    kubectl edit rdsinstaller <name> -n <namespace>
+    ```
+
+    Set `spec.slowSQLCK.hostPath` to a writable path on the node:
+
+    ```yaml
+    spec:
+      slowSQLCK:
+        hostPath: /opt/local-pv/ck
+    ```
+
+    :::info
+    On MicroOS, use a path under `/opt/` (e.g., `/opt/local-pv/ck`). The directory will be created automatically with `DirectoryOrCreate` type.
+    :::
+
+3. If the query-analytics plugin was already deployed with the default path and ClickHouse pods are failing, update the `hostPath` as above, then recreate the ClickHouse pods:
 
     ```bash
     # Find ClickHouse pods
     kubectl get pod -n <namespace> | grep clickhouse
-    # Delete them to trigger recreation
+    # Delete them to trigger recreation with the new path
     kubectl delete pod -n <namespace> <clickhouse-pod-names>
     ```
 
@@ -373,6 +382,6 @@ kubectl annotate mysql ${instance_name} -n ${namespace} \
 
 **Symptom**: ClickHouse pods fail to start with `mkdir /cpaas: read-only file system`.
 
-**Cause**: The query-analytics plugin uses a hardcoded host path (`/cpaas/ck`) that does not exist on read-only filesystems.
+**Cause**: The query-analytics plugin's default ClickHouse host path (`/cpaas/ck`) does not exist on read-only filesystems.
 
-**Fix**: Follow [Step 3](#step-3-optional-fix-clickhouse-storage-on-read-only-filesystems) to update the `qai` resource with the correct StorageClass.
+**Fix**: Follow [Step 3](#step-3-optional-configure-clickhouse-storage-path-on-read-only-filesystems) to set `spec.slowSQLCK.hostPath` in the `RdsInstaller` CR to a writable path.
