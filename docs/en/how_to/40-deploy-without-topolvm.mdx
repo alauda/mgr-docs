@@ -1,0 +1,378 @@
+---
+weight: 40
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Deploy MySQL-MGR Without TopoLVM
+
+This guide provides instructions for deploying MySQL Group Replication (MGR) instances on clusters where TopoLVM is not available, such as clusters running MicroOS (SUSE Linux Enterprise Micro) or other environments that use alternative storage provisioners.
+
+## Background
+
+### The Challenge
+
+MySQL-MGR typically relies on TopoLVM for dynamic volume provisioning. However, some environments do not support TopoLVM:
+
+- **MicroOS clusters**: The root filesystem is read-only, and TopoLVM may not be installed.
+- **Bare-metal clusters**: Some clusters use local storage with manual PV provisioning.
+- **Test/evaluation environments**: Lightweight setups that don't include TopoLVM.
+
+Without proper storage configuration, MySQL pods will fail to start due to PVC binding failures or permission issues.
+
+### The Solution
+
+Use a local StorageClass with manually provisioned PersistentVolumes (PVs). This guide covers:
+
+- **Dependency installation**: Ensure all required operators are installed before deploying MySQL-MGR.
+- **StorageClass creation**: Set up a local StorageClass with `WaitForFirstConsumer` binding.
+- **PV provisioning**: Create local PVs with correct paths, permissions, and reclaim policies.
+- **ClickHouse storage fix** (optional): Avoid the `read-only file system` error caused by the query-analytics plugin's hardcoded host path.
+- **Instance creation**: Deploy MySQL-MGR using the local StorageClass.
+
+## Prerequisites
+
+### Required Operators
+
+Before deploying MySQL-MGR, ensure the following core operators are installed on the cluster:
+
+| Operator | Purpose |
+|----------|---------|
+| **application-services-core** | Core platform services (includes etcd-sync, log-agent, monitoring stack, etc.) |
+| **rds-operator** | Relational database service operator |
+
+If you need query analytics features (slow query logging, query analysis), the following operators are also required:
+
+| Operator | Purpose |
+|----------|---------|
+| **clickhouse-operator** | ClickHouse database operator (used by query analytics) |
+| **query-analytics-operator** | Query analytics and slow query logging |
+
+:::info
+If your cluster uses TopoLVM, the `topolvm-operator` is also required. Since this guide covers non-TopoLVM deployments, it is not needed here.
+:::
+
+You can verify that the operators are installed by checking their CSVs:
+
+```bash
+kubectl get csv -A | grep -E "application-services-core|rds-operator|clickhouse-operator|query-analytics-operator"
+```
+
+All operators should show `Succeeded` in the `PHASE` column.
+
+### Cluster Requirements
+
+- At least 3 worker nodes are recommended for production deployments (MySQL-MGR requires 3 members for group replication quorum). Single-member deployments are possible for testing.
+- Sufficient CPU and memory resources on each node.
+- A writable directory path available on all nodes (e.g., `/opt/local-pv/` on MicroOS).
+
+## Step 1: Create a Local StorageClass
+
+If your cluster does not already have a suitable StorageClass, create one:
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mgr-local-pv
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+EOF
+```
+
+:::warning
+`volumeBindingMode: WaitForFirstConsumer` is required so that PVs are bound only after a pod is scheduled to a specific node. This ensures data locality.
+:::
+
+:::info
+The StorageClass name is arbitrary. This guide uses `mgr-local-pv` to distinguish it from the Rancher `local-path` dynamic provisioner. You can use any name, but must reference it consistently in subsequent steps.
+:::
+
+## Step 2: Provision Local PersistentVolumes
+
+Each MySQL-MGR member requires one PV. For a 3-member cluster, create at least 3 PVs, distributed across different nodes.
+
+### Create Directories on Nodes
+
+On MicroOS, the root filesystem is read-only. Use `/opt/local-pv/` as the base path:
+
+```bash
+# Run on each worker node, or use a privileged pod
+for i in $(seq 1 9); do
+  mkdir -p /opt/local-pv/pv$i
+  chmod 777 /opt/local-pv/pv$i
+done
+```
+
+:::warning
+- **Path**: On MicroOS, do not use `/data` or other root-level paths — they will fail with `read-only file system`. Use `/opt/local-pv/` instead.
+- **Permissions**: `chmod 777` is a convenience workaround because MySQL containers run as a non-root user with a UID/GID that may not match the host. Without write permissions, `mysqld --initialize` will fail with `Permission denied`. For production environments, consider setting ownership to the specific UID used by the MySQL container (typically `999:999`) instead of using `777`.
+- **Stale data**: If reusing PV directories, remove all existing files first with `rm -rf /opt/local-pv/pvN/*`. MySQL initialization fails if the data directory is not empty.
+:::
+
+### Create PV Resources
+
+First, identify your node names:
+
+```bash
+kubectl get nodes -o wide
+```
+
+Then create PVs, mapping each to a specific node. For a 3-member cluster across 3 nodes:
+
+```bash
+# Define your node names
+NODE1=<node1-hostname>
+NODE2=<node2-hostname>
+NODE3=<node3-hostname>
+
+# Create 3 PVs per node (9 total) to allow for scaling and reprovisioning
+for node in $NODE1 $NODE2 $NODE3; do
+  for i in 1 2 3; do
+    idx=$(( ($(echo $NODE1 $NODE2 $NODE3 | tr ' ' '\n' | grep -n $node | cut -d: -f1) - 1) * 3 + i ))
+    kubectl apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv-$idx
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: mgr-local-pv
+  local:
+    path: /opt/local-pv/pv$idx
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - $node
+EOF
+  done
+done
+```
+
+Verify that all PVs are created and available:
+
+```bash
+kubectl get pv -l '!pv-is-managed' | grep mgr-local-pv
+```
+
+All PVs should show `Available` status before proceeding.
+
+:::info
+- Use `persistentVolumeReclaimPolicy: Delete` instead of `Retain`. With `Retain`, PVs go to `Released` state after PVC deletion and cannot be reused without manual cleanup.
+- Note that for manually provisioned local PVs, deleting the PV object does **not** automatically clean up the data on disk. You may still need to manually clear directories before reuse.
+- Create more PVs than the minimum required to accommodate scaling and reprovisioning. However, extra PVs do not help with failover: if a node is lost, the PVs bound to it cannot be migrated. Recovery from node loss requires manual reprovisioning and data resync.
+:::
+
+## Step 3 (Optional): Fix ClickHouse Storage on Read-Only Filesystems
+
+:::info
+This step is only needed if you have the query-analytics plugin deployed and want slow query logging / query analysis features. If you do not use query analytics, skip this step — MySQL-MGR instances will function normally without it.
+:::
+
+The query-analytics plugin deploys ClickHouse using host directory PVs with a hardcoded path (`/cpaas/ck`). On MicroOS or other systems with a read-only root filesystem, this causes ClickHouse pods to fail with:
+
+```
+mkdir /cpaas: read-only file system
+```
+
+To fix this, modify the query-analytics instance (`qai` resource) after the query-analytics plugin is deployed:
+
+1. Find the `qai` resource and inspect its current configuration:
+
+    ```bash
+    kubectl get qai -A
+    kubectl get qai <qai-name> -n <namespace> -o yaml | grep -A5 slowsql
+    ```
+
+2. Edit the `qai` resource and set the `storageClassName` field under `slowsql` to your StorageClass:
+
+    ```bash
+    kubectl edit qai <qai-name> -n <namespace>
+    ```
+
+    Change the `slowsql` section's `storageClassName` to `mgr-local-pv` (or your StorageClass name).
+
+3. Find and recreate the ClickHouse pods to pick up the new storage configuration:
+
+    ```bash
+    # Find ClickHouse pods
+    kubectl get pod -n <namespace> | grep clickhouse
+    # Delete them to trigger recreation
+    kubectl delete pod -n <namespace> <clickhouse-pod-names>
+    ```
+
+## Step 4: Create a MySQL-MGR Instance
+
+1. Create the password secret:
+
+    ```bash
+    kubectl -n ${namespace} create secret generic mgr-${instance_name}-password \
+      --from-literal=clusterchecker=${password} \
+      --from-literal=exporter=${password} \
+      --from-literal=manage=${password} \
+      --from-literal=root=${password}
+    ```
+
+2. Create the MySQL CR with the local StorageClass:
+
+    ```bash
+    kubectl apply -n ${namespace} -f - <<EOF
+    apiVersion: middleware.alauda.io/v1
+    kind: Mysql
+    metadata:
+      labels:
+        mysql/arch: mgr
+      name: ${instance_name}
+    spec:
+      mgr:
+        enableStorage: true
+        members: 3
+        monitor:
+          enable: true
+        resources:
+          server:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: "2"
+              memory: 4Gi
+        router:
+          replicas: 2
+          resources:
+            limits:
+              cpu: 800m
+              memory: 640Mi
+            requests:
+              cpu: 800m
+              memory: 640Mi
+          svcRO:
+            type: ClusterIP
+          svcRW:
+            type: ClusterIP
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 20Gi
+            storageClassName: mgr-local-pv
+      params:
+        mysql:
+          mysqld:
+            character_set_server: utf8mb4
+            default_storage_engine: InnoDB
+            default_time_zone: "+08:00"
+      passwordSecretName: mgr-${instance_name}-password
+      version: "8.0"
+    EOF
+    ```
+
+    :::info
+    - Set `storageClassName: mgr-local-pv` (or your StorageClass name) in the `volumeClaimTemplate` section. This replaces the default `sc-topolvm`.
+    - The `version` field is required. Use `"8.0"` for MySQL 8.0.
+    :::
+
+3. Monitor the instance status:
+
+    ```bash
+    kubectl get mysql ${instance_name} -n ${namespace} -w
+    ```
+
+    Wait until the `STATE` field shows `ready`.
+
+4. Verify PVC binding and pod placement:
+
+    ```bash
+    kubectl get pvc -n ${namespace}
+    kubectl get pod -n ${namespace} -o wide | grep ${instance_name}
+    ```
+
+    Confirm that each PVC is bound to a PV and that pods are distributed across different nodes.
+
+## Troubleshooting
+
+### PVCs Stuck in Pending
+
+**Symptom**: PVCs remain in `Pending` state and pods are not scheduled.
+
+**Cause**: No available PVs match the StorageClass name or node affinity, or PVs are in `Released` state.
+
+**Fix**:
+```bash
+# Check PV status
+kubectl get pv | grep mgr-local-pv
+# Check PVC events for details
+kubectl describe pvc -n <namespace> <pvc-name>
+# Verify StorageClass name matches between PV and PVC
+kubectl get pv <pv-name> -o jsonpath='{.spec.storageClassName}'
+```
+
+### MySQL Pods Stuck in CrashLoopBackOff
+
+**Symptom**: MySQL pods crash with `Permission denied` during initialization.
+
+**Cause**: PV directories do not have write permissions for the non-root MySQL user.
+
+**Fix**:
+```bash
+# On the node where the pod is scheduled
+chmod 777 /opt/local-pv/pvN
+```
+
+### MySQL Pods Fail with "data directory has files in it"
+
+**Symptom**: `mysqld --initialize` fails because the data directory is not empty.
+
+**Cause**: PV directory contains stale data from a previous deployment.
+
+**Fix**:
+```bash
+# On the node, or via a privileged pod
+rm -rf /opt/local-pv/pvN/*
+```
+
+### PVs Stuck in Released State
+
+**Symptom**: PVs show `Released` status and cannot be bound to new PVCs.
+
+**Cause**: PVs were created with `persistentVolumeReclaimPolicy: Retain`.
+
+**Fix**: Delete the Released PVs and recreate them with `persistentVolumeReclaimPolicy: Delete`:
+```bash
+kubectl delete pv <pv-name>
+# Then recreate following Step 2
+```
+
+### Instance Stuck in ErrorReconcile
+
+**Symptom**: The MySQL instance shows `ErrorReconcile` condition and the `STATE` field shows `available` instead of `ready`, even though all pods are running.
+
+**Cause**: The operator's reconcile loop hit a conflict error updating the CR status.
+
+**Fix**: Annotate the MySQL CR to trigger a fresh reconciliation:
+```bash
+kubectl annotate mysql ${instance_name} -n ${namespace} \
+  force-reconcile="$(date +%s)" --overwrite
+```
+
+### ClickHouse Pods Fail with "read-only file system"
+
+**Symptom**: ClickHouse pods fail to start with `mkdir /cpaas: read-only file system`.
+
+**Cause**: The query-analytics plugin uses a hardcoded host path (`/cpaas/ck`) that does not exist on read-only filesystems.
+
+**Fix**: Follow [Step 3](#step-3-optional-fix-clickhouse-storage-on-read-only-filesystems) to update the `qai` resource with the correct StorageClass.
