@@ -285,12 +285,12 @@ To fix this, set the `hostPath` field in the `RdsInstaller` CR's `spec.slowSQLCK
             character_set_server: utf8mb4
             default_storage_engine: InnoDB
             default_time_zone: "+08:00"
-      passwordSecretName: mgr-${instance_name}-password
       version: "8.0"
     EOF
     ```
 
     :::info
+    - The password secret must follow the naming convention `mgr-${instance_name}-password`. The operator discovers it automatically by this name.
     - Set `storageClassName: mgr-local-pv` (or your StorageClass name) in the `volumeClaimTemplate` section. This replaces the default `sc-topolvm`.
     - The `version` field is required. Use `"8.0"` for MySQL 8.0.
     :::
