@@ -179,9 +179,7 @@ All PVs should show `Available` status before proceeding.
 - Create more PVs than the minimum required to accommodate scaling and reprovisioning. However, extra PVs do not help with failover: if a node is lost, the PVs bound to it cannot be migrated. Recovery from node loss requires manual reprovisioning and data resync.
 :::
 
-<a id="step-3-optional-configure-clickhouse-storage-path-on-read-only-filesystems"></a>
-
-## Step 3 (Optional): Configure ClickHouse Storage Path on Read-Only Filesystems
+## Step 3 (Optional): Configure ClickHouse Storage Path on Read-Only Filesystems \{#step-3-optional-configure-clickhouse-storage-path-on-read-only-filesystems}
 
 :::info
 This step is only needed if you have the query-analytics plugin deployed and want slow query logging / query analysis features. If you do not use query analytics, skip this step — MySQL-MGR instances will function normally without it.
