@@ -9,6 +9,176 @@ title: Upgrade
 
 # Upgrade
 
+:::warning
+PXC Removal in Alauda Database Service for MySQL v4.3.0
+**MySQL-PXC is deprecated** and **removed** starting from Alauda Database Service for MySQL v4.3.0. Existing PXC instances will continue running but are no longer managed by the MySQL operator. If you have PXC instances, you **must migrate them to MySQL-MGR before upgrading** to MySQL Operator v4.3.0 or later.
+
+- **Migration Guide**: See [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc) for comprehensive step-by-step instructions covering schema compatibility, character sets, users, and privileges.
+:::
+
 Alauda Database Service for MySQL-MGR will execute upgrades based on the configured upgrade strategy:
 - **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
 - **Manual** : Requires manual approval before initiating the upgrade process.
+
+## MySQL-PXC Pre-Upgrade Checklist
+
+If your platform has **MySQL-PXC** instances, complete the following **before upgrading to MySQL Operator v4.3.0 or later**:
+
+<Steps>
+
+### 1. Identify all PXC instances
+
+Run the following command on each cluster to list all PXC instances:
+
+```bash
+kubectl get perconaxtradbcluster -A
+```
+
+If no PXC instances are found, skip the remaining steps.
+
+### 2. Assess migration urgency
+
+| Scenario | Action Required |
+|----------|---------------|
+| Upgrading to MySQL Operator **4.2.x** | PXC remains managed. Plan migration before future 4.3+ upgrade. |
+| Upgrading to MySQL Operator **4.3.0+** | PXC becomes unmanaged immediately after operator upgrade. **Must migrate before upgrading.** |
+
+### 3. Run pre-migration checks
+
+Before migrating, run the compatibility analysis on each PXC instance:
+
+- **Schema compatibility**: Detect MySQL 8.0 reserved keywords, ZEROFILL columns, invalid date defaults.
+- **Character set analysis**: Identify tables not using `utf8mb4`.
+- **GTID verification**: Ensure `@@gtid_mode = ON` and `@@enforce_gtid_consistency = ON`.
+
+For detailed instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc) (Step 1 & Step 2).
+
+### 4. Create target MGR instances
+
+Create MySQL-MGR 8.0 instances as migration targets **before** starting the operator upgrade. Follow the [Instance Creation Guide](./functions/01-create) with these key settings:
+
+- **MySQL Version**: `8.0`
+- **Storage**: 2-3x the size of the source PXC database
+- **Resource allocation**: Same or higher than source PXC
+
+### 5. Perform full backup
+
+Take a full logical backup (`mysqldump`) of each PXC instance before migration. Verify the backup is restorable. For detailed instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc).
+
+### 6. Migrate data
+
+Execute the migration using `mysqldump` logical backup and restore. For step-by-step instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc).
+
+### 7. Verify migration
+
+After migration, verify:
+- All user databases are present in the MGR instance.
+- Application connections point to the new MGR endpoint.
+- Data integrity checks pass (row counts, checksum).
+
+### 8. Decommission PXC instances
+
+After successful migration and verification, delete the PXC custom resources:
+
+```bash
+kubectl delete perconaxtradbcluster <pxc-instance-name> -n <namespace>
+```
+
+Clean up PVCs if no longer needed:
+
+```bash
+kubectl delete pvc -l app.kubernetes.io/instance=<pxc-instance-name> -n <namespace>
+```
+
+</Steps>
+
+## PXC Upgrade Scenarios
+
+The following scenarios apply when upgrading to **MySQL Operator v4.3.0 or later**:
+
+### Scenario 1: No PXC instances
+
+No additional action is required. Proceed with the standard MySQL operator upgrade.
+
+### Scenario 2: PXC instances present — migrate before upgrading
+
+If PXC instances exist on the cluster, you **must** migrate them to MySQL-MGR **before** upgrading the MySQL operator. After migration is complete and verified, you may proceed with the standard upgrade.
+
+**Steps:**
+1. Identify all PXC instances: `kubectl get perconaxtradbcluster -A`
+2. Follow the [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc) guide for each instance.
+3. Verify applications connect to the new MGR endpoints.
+4. Decommission PXC instances.
+5. Proceed with the MySQL operator upgrade.
+
+### Scenario 3: PXC instances present — upgrade operator first, migrate later
+
+:::warning
+This approach is only recommended if migration cannot be completed before the maintenance window. PXC instances will become **unmanaged** immediately after the operator upgrade. They will continue running but will not receive operator updates, backups, or failover support.
+:::
+
+If you must upgrade the operator first:
+
+1. Upgrade the MySQL operator following the standard procedure.
+2. After the upgrade, PXC instances remain running but are unmanaged.
+3. Plan and execute PXC-to-MGR migration as soon as possible after the upgrade.
+4. Monitor PXC instances closely for any issues during the unmanaged period.
+
+### Scenario 4: Mixed cluster (some PXC, some MGR)
+
+Clusters with both PXC and MGR instances can be upgraded, but only the MGR instances will remain managed after the operator upgrade. For each PXC instance, choose either Scenario 2 (migrate first) or Scenario 3 (upgrade first, migrate later).
+
+## PXC Emergency Response Plan
+
+If PXC instances encounter issues during or after the operator upgrade when they are in an unmanaged state, use the following procedures:
+
+### PXC pod is not running after upgrade
+
+PXC instances are no longer managed by the operator, so automatic recovery will not occur.
+
+1. **Check pod status**:
+   ```bash
+   kubectl get pod -n <namespace> | grep <pxc-instance-name>
+   kubectl describe pod <pxc-pod-name> -n <namespace>
+   ```
+2. **Manually restart the PXC pod**:
+   ```bash
+   kubectl delete pod <pxc-pod-name> -n <namespace>
+   ```
+3. **Verify recovery**:
+   ```bash
+   kubectl get pod -n <namespace>  # Wait for pod to reach Running state
+   ```
+4. If the pod does not recover, check PVC status and logs. For persistent issues, **contact technical support**.
+
+### PXC data inconsistency detected
+
+If data inconsistency is suspected:
+
+1. **Stop writes** to the affected PXC instance immediately to prevent further divergence.
+2. **Identify the last known good backup** from before the upgrade.
+3. **Assess recovery options**:
+   - If recent backup is available and the data loss window is acceptable, restore from backup.
+   - If data loss is unacceptable, contact technical support for assistance.
+4. **After recovery**, prioritize completing the PXC-to-MGR migration to restore managed state.
+
+### PXC-to-MGR migration fails during upgrade window
+
+If migration cannot be completed within the maintenance window:
+
+1. **Roll back application connections** to the original PXC endpoints if applications have already been switched.
+2. **Verify PXC is still operational**: `kubectl get perconaxtradbcluster -n <namespace>`
+3. **Postpone further migration** to a planned maintenance window.
+4. **Document the failure** for post-mortem analysis.
+
+:::warning Critical: Do not delete PXC CRs until migration is complete and verified
+Deleting a PXC custom resource will delete all associated pods and data. Always verify data integrity on the target MGR instance before decommissioning the source PXC instance.
+:::
+
+### Rollback considerations
+
+The MySQL operator **cannot be rolled back** to a previous version after upgrade. If a critical issue occurs:
+
+- PXC instances remain running (they are not affected by the operator upgrade itself, only by the loss of operator management).
+- MySQL-MGR instances continue to function normally.
+- Contact technical support to assess the issue and determine next steps.
