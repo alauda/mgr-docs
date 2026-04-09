@@ -132,9 +132,11 @@ NODE2=<node2-hostname>
 NODE3=<node3-hostname>
 
 # Create 3 PVs per node (9 total) to allow for scaling and reprovisioning
-for node in $NODE1 $NODE2 $NODE3; do
+nodes=("$NODE1" "$NODE2" "$NODE3")
+for n in "${!nodes[@]}"; do
+  node="${nodes[$n]}"
   for i in 1 2 3; do
-    idx=$(( ($(echo $NODE1 $NODE2 $NODE3 | tr ' ' '\n' | grep -n $node | cut -d: -f1) - 1) * 3 + i ))
+    idx=$(( n * 3 + i ))
     kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolume
