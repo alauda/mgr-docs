@@ -52,6 +52,10 @@ If you need query analytics features (slow query logging, query analysis), the f
 | **clickhouse-operator** | ClickHouse database operator (used by query analytics) |
 | **query-analytics-operator** | Query analytics and slow query logging |
 
+:::warning
+On read-only filesystems (e.g., MicroOS), you **must** configure the ClickHouse storage path in the `RdsInstaller` CR **before** installing the query-analytics-operator. Otherwise, the operator will immediately create a ClickHouse PV at the default `/cpaas/ck` host path, which will fail with `read-only file system`. See [Step 3](#step-3-optional-configure-clickhouse-storage-path-on-read-only-filesystems) for details.
+:::
+
 :::info
 If your cluster uses TopoLVM, the `topolvm-operator` is also required. Since this guide covers non-TopoLVM deployments, it is not needed here.
 :::
@@ -182,7 +186,7 @@ All PVs should show `Available` status before proceeding.
 ## Step 3 (Optional): Configure ClickHouse Storage Path on Read-Only Filesystems \{#step-3-optional-configure-clickhouse-storage-path-on-read-only-filesystems}
 
 :::info
-This step is only needed if you have the query-analytics plugin deployed and want slow query logging / query analysis features. If you do not use query analytics, skip this step — MySQL-MGR instances will function normally without it.
+This step is only needed if you plan to use query analytics features (slow query logging, query analysis). If you do not use query analytics, skip this step — MySQL-MGR instances will function normally without it.
 :::
 
 The query-analytics plugin deploys ClickHouse using a host directory PV. By default, the host path is `/cpaas/ck`. On MicroOS or other systems with a read-only root filesystem, this causes ClickHouse pods to fail with:
@@ -191,15 +195,21 @@ The query-analytics plugin deploys ClickHouse using a host directory PV. By defa
 mkdir /cpaas: read-only file system
 ```
 
-To fix this, set the `hostPath` field in the `RdsInstaller` CR's `spec.slowSQLCK` section to a writable path before deploying the query-analytics plugin:
+:::warning
+You must configure the `hostPath` **before** installing the query-analytics-operator. Once installed, the operator immediately reconciles and creates the ClickHouse PV with the default `/cpaas/ck` path, which will fail on read-only filesystems.
+:::
 
-1. Find the `RdsInstaller` resource:
+### Configure hostPath before installing query-analytics-operator
+
+1. Install the **rds-operator** first (if not already installed). The `RdsInstaller` CR is created by the rds-operator during its initialization.
+
+2. Find the `RdsInstaller` resource:
 
     ```bash
     kubectl get rdsinstaller -A
     ```
 
-2. Edit the `RdsInstaller` to override the ClickHouse host path:
+3. Edit the `RdsInstaller` to override the ClickHouse host path:
 
     ```bash
     kubectl edit rdsinstaller <name> -n <namespace>
@@ -217,14 +227,22 @@ To fix this, set the `hostPath` field in the `RdsInstaller` CR's `spec.slowSQLCK
     On MicroOS, use a path under `/opt/` (e.g., `/opt/local-pv/ck`). The directory will be created automatically with `DirectoryOrCreate` type.
     :::
 
-3. If the query-analytics plugin was already deployed with the default path and ClickHouse pods are failing, update the `hostPath` as above, then recreate the ClickHouse pods:
+4. Now install the **clickhouse-operator** and **query-analytics-operator**. The ClickHouse PV will be created using the configured path instead of the default `/cpaas/ck`.
 
-    ```bash
-    # Find ClickHouse pods
-    kubectl get pod -n <namespace> | grep clickhouse
-    # Delete them to trigger recreation with the new path
-    kubectl delete pod -n <namespace> <clickhouse-pod-names>
-    ```
+### Fix an existing deployment with the wrong hostPath
+
+If the query-analytics-operator was already installed with the default path and ClickHouse pods are failing, update the `hostPath` as above, then delete the existing PV and recreate the ClickHouse pods:
+
+```bash
+# Find and delete the old PV with the wrong hostPath
+kubectl get pv | grep ck
+kubectl delete pv <pv-name>
+
+# Find ClickHouse pods
+kubectl get pod -n <namespace> | grep clickhouse
+# Delete them to trigger recreation with the new path
+kubectl delete pod -n <namespace> <clickhouse-pod-names>
+```
 
 ## Step 4: Create a MySQL-MGR Instance
 
