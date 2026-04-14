@@ -196,7 +196,7 @@ mkdir /cpaas: read-only file system
 ```
 
 :::warning
-You must configure the `hostPath` **before** installing the query-analytics-operator. Once installed, the operator immediately reconciles and creates the ClickHouse PV with the default `/cpaas/ck` path, which will fail on read-only filesystems.
+You must configure the `hostPath` **before** installing the query-analytics-operator. The `RdsInstaller → QueryAnalyticsInstaller` merge runs only when the `QueryAnalyticsInstaller` (`qai`) CR is first created. Once the operator is installed, the `qai` CR already exists and later edits to `RdsInstaller` will not propagate. To recover from an existing deployment, see [Fix an existing deployment](#fix-an-existing-deployment-with-the-wrong-hostpath).
 :::
 
 ### Configure hostPath before installing query-analytics-operator
@@ -231,18 +231,50 @@ You must configure the `hostPath` **before** installing the query-analytics-oper
 
 ### Fix an existing deployment with the wrong hostPath
 
-If the query-analytics-operator was already installed with the default path and ClickHouse pods are failing, update the `hostPath` as above, then delete the existing PV and recreate the ClickHouse pods:
+If the query-analytics-operator is already installed with the default path and ClickHouse pods are failing, editing only `RdsInstaller.spec.slowSQLCK.hostPath` is not enough — the merge into `QueryAnalyticsInstaller` only runs when `qai` is first created. You must also force `qai` to be recreated (or edit `qai` directly).
+
+**Option A — Recreate `qai` so the merge re-runs:**
+
+1. Update `RdsInstaller` as described in the pre-install procedure above:
+
+    ```bash
+    kubectl edit rdsinstaller <name> -n <namespace>
+    # set spec.slowSQLCK.hostPath: /opt/local-pv/ck
+    ```
+
+2. Delete the ClickHouse installation and the old PV:
+
+    ```bash
+    kubectl delete chi pxc-ck -n <clickhouse-namespace>
+    kubectl get pv | grep pxc-ck
+    kubectl delete pv <pv-name>
+    ```
+
+3. Delete the `QueryAnalyticsInstaller` CR. The query-analytics-operator will recreate it, merging the updated `RdsInstaller` settings:
+
+    ```bash
+    kubectl delete qai qai
+    ```
+
+4. Verify the new `hostPath`:
+
+    ```bash
+    kubectl get qai qai -o jsonpath='{.spec.slowSQL.hostPath}{"\n"}'
+    kubectl get pv pxc-ck-pv -o jsonpath='{.spec.hostPath.path}{"\n"}'
+    ```
+
+    Both should show the configured path (e.g. `/opt/local-pv/ck`).
+
+**Option B — Edit `qai` directly** (faster, but `RdsInstaller` will drift from `qai` until the next recreation):
 
 ```bash
-# Find and delete the old PV with the wrong hostPath
-kubectl get pv | grep ck
-kubectl delete pv <pv-name>
-
-# Find ClickHouse pods
-kubectl get pod -n <namespace> | grep clickhouse
-# Delete them to trigger recreation with the new path
-kubectl delete pod -n <namespace> <clickhouse-pod-names>
+kubectl edit qai qai
+# set spec.slowSQL.hostPath: /opt/local-pv/ck
+kubectl delete chi pxc-ck -n <clickhouse-namespace>
+kubectl delete pv <old-pv-name>
 ```
+
+The query-analytics-operator will recreate the ClickHouse installation and PV using the path set on `qai`.
 
 ## Step 4: Create a MySQL-MGR Instance
 
