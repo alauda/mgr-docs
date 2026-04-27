@@ -229,7 +229,7 @@ You must configure the `hostPath` **before** installing the query-analytics-oper
 
 4. Now install the **clickhouse-operator** and **query-analytics-operator**. The ClickHouse PV will be created using the configured path instead of the default `/cpaas/ck`.
 
-### Fix an existing deployment with the wrong hostPath
+### Fix an existing deployment with the wrong hostPath \{#fix-an-existing-deployment-with-the-wrong-hostpath}
 
 If the query-analytics-operator is already installed with the default path and ClickHouse pods are failing, editing only `RdsInstaller.spec.slowSQLCK.hostPath` is not enough — the merge into `QueryAnalyticsInstaller` only runs when `qai` is first created. You must also force `qai` to be recreated (or edit `qai` directly).
 
