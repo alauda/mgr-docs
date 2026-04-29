@@ -20,6 +20,6 @@ releaseNotes:
     mw-mgr-v4.0.1-fixed: |
       filter = 16502 AND ACPAffectVersions not in (v4.0.1) AND ACPFixVersions = v4.0.1 AND status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND ReleaseNotesStatus = Publish
     mw-mgr-v4.3.2-fixed: |
-      filter = 16502 AND status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND fixVersion in (MGR-v4.3.0, MGR-v4.3.1, MGR-v4.3.2) AND ReleaseNotesStatus = Publish
+      filter = 16502 AND status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND fixVersion in versionMatch("MGR-v4.3.*") AND ReleaseNotesStatus = Publish
     mw-mgr-v4.3-known: |
-      filter = 18959 AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND (affectedVersion in (MGR-v4.3.0, MGR-v4.3.1, MGR-v4.3.2) OR ACPAffectVersions in (v4.3.0, v4.3.1, v4.3.2)) AND status not in (Closed, Done, Resolved, 已验证) AND (labels not in (非产品问题, 非当前版本功能, 安全问题) OR labels is EMPTY) AND ReleaseNotesStatus = Publish
+      filter = 18959 AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND (affectedVersion in versionMatch("MGR-v4.3.*") OR ACPAffectVersions in versionMatch("v4.3.*")) AND status not in (Closed, Done, Resolved, 已验证) AND (labels not in (非产品问题, 非当前版本功能, 安全问题) OR labels is EMPTY) AND ReleaseNotesStatus = Publish
