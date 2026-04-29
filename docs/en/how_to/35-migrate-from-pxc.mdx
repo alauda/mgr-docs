@@ -1,5 +1,10 @@
 ---
 weight: 35
+i18n:
+  title:
+    en: Migrate MySQL-PXC to MySQL-MGR
+    zh: 将 MySQL-PXC 迁移到 MySQL-MGR
+title: Migrate MySQL-PXC to MySQL-MGR
 kind:
    - Solution
 products:
@@ -278,7 +283,7 @@ spec:
   mgr:
     enableStorage: true
     image: {}
-    members: 1
+    members: 3
     monitor:
       enable: true
       exporter: {}
@@ -324,7 +329,6 @@ spec:
         level: info
   upgradeOption:
     autoUpgrade: false
-    crVersion: 4.2.0
   version: "8.0"
 EOF
 ```

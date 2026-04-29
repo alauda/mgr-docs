@@ -6,29 +6,36 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
-## v4.0.1
-
-### Fixed Issues
-
-{/* release-notes-for-bugs?template=mw-mgr-v4.0.1-fixed&project=Middleware */}
-
-## v4.0.0
+## v4.3.2
 
 ### New and Optimized Features
 
-#### Component-Platform Decoupling
+#### MySQL-PXC Removal
 
-Alauda Database Services for MySQL-MGR's lifecycle has been decoupled from platform's, which means when customer needs a certain feature or a bug fix, MySQL-MGR team can release immediately instead of waiting for the platform release together.
+The deprecated MySQL-PXC architecture has been removed. MySQL-MGR is now the sole supported topology. Existing PXC instances continue running but are no longer reconciled by the MySQL operator. Migrate any remaining PXC instances to MySQL-MGR before upgrading. See [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc) for the full procedure.
 
-#### Real-Time Logs on Component Details Page
+#### Deployment on Non-TopoLVM Environments
 
-The logs on MySQL-MGR details page have been replaced with real-time logs that update instantly, facilitating troubleshooting and issue analysis.
+You can now deploy MySQL-MGR clusters on environments that do not provide TopoLVM, such as MicroOS or bare-metal clusters, by using a manually provisioned local StorageClass. See [Deploy MySQL-MGR Without TopoLVM](./how_to/40-deploy-without-topolvm).
+
+#### Backup Reliability
+
+- S3 backups for large files now use multipart upload to avoid the `EntityTooLarge` error.
+- A stale backup annotation on a MySQL cluster is automatically cleared when the referenced backup has already completed, preventing new backups from being incorrectly rejected.
+
+#### SSL with Strict Security Mode
+
+SSL volumes and certificate mounts are now provisioned correctly when both SSL and strict security mode are enabled, eliminating the unavailable-state regression that affected SSL-enabled MGR clusters in earlier 4.3 builds.
+
+#### RBAC Hardening
+
+RBAC permissions for MGR cluster components were tightened to follow least-privilege principles.
 
 ### Fixed Issues
 
-{/* release-notes-for-bugs?template=mw-mgr-v4.0-fixed&project=Middleware */}
+{/* release-notes-for-bugs?template=mw-mgr-v4.3.2-fixed&project=Middleware */}
 
 ### Known Issues
 
-{/* release-notes-for-bugs?template=mw-mgr-v4.0-known&project=Middleware */}
+{/* release-notes-for-bugs?template=mw-mgr-v4.3-known&project=Middleware */}
 
