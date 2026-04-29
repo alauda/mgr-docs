@@ -1,5 +1,10 @@
 ---
 weight: 40
+i18n:
+  title:
+    en: Deploy MySQL-MGR Without TopoLVM
+    zh: 不依赖 TopoLVM 部署 MySQL-MGR
+title: Deploy MySQL-MGR Without TopoLVM
 kind:
    - Solution
 products:
@@ -172,7 +177,7 @@ done
 Verify that all PVs are created and available:
 
 ```bash
-kubectl get pv -l '!pv-is-managed' | grep mgr-local-pv
+kubectl get pv | grep mgr-local-pv
 ```
 
 All PVs should show `Available` status before proceeding.
