@@ -1,0 +1,91 @@
+---
+weight: 110
+i18n:
+  title:
+    en: Restore Specific Databases and Tables from an MGR Backup
+    zh: MGR 指定库表备份恢复
+title: Restore Specific Databases and Tables from an MGR Backup
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Restore Specific Databases and Tables from an MGR Backup
+
+When a logical mistake — a dropped table, a bad bulk update — needs to be undone, restoring the entire cluster from a full backup is overkill. The MGR operator's `mysqlsh`-based backup format supports selective restore of individual schemas or tables into a fresh target cluster, leaving the rest of the source dataset untouched. This how-to walks through the `MySQLRestore` fields that drive the selection and shows how to validate the result.
+
+## Background
+
+A full backup taken by the operator's `mysqlsh` executor (default in v4.x) is a MySQL Shell dump. Shell dumps support partial-load filters at restore time. The `MySQLRestore` CR exposes those filters under `spec.mysqlShellLoad`:
+
+- `includeSchemas` — restore only the listed databases.
+- `includeTables` — restore only the listed tables, with names written in `schema.table` form.
+
+The restore is applied into the **target** cluster named under `spec.cluster.name`. The target is typically a freshly-created empty `Mysql` instance.
+
+## Prerequisites
+
+- Source and target instances both run v4.x of the operator.
+- The full backup referenced by `spec.backup.name` was produced by the `mysqlsh` executor. Check `status.executor` on the source `MySQLBackup` CR to confirm.
+- The target cluster is healthy with at least one ONLINE PRIMARY.
+
+## Procedure
+
+### 1. Create the `MySQLRestore` resource
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: MySQLRestore
+metadata:
+  name: restore-full-tables
+  namespace: tsl-x
+spec:
+  backup:
+    name: mgr-all
+  cluster:
+    name: new
+  source:
+    name: mgr
+  mysqlShellLoad:
+    includeSchemas:
+      - fu
+    includeTables:
+      - fu.user
+```
+
+Field meaning:
+
+- `spec.backup.name` — the `MySQLBackup` CR holding the full backup to restore from.
+- `spec.source.name` — the source `Mysql` instance the backup belongs to.
+- `spec.cluster.name` — the target `Mysql` instance that receives the restored data.
+- `spec.mysqlShellLoad.includeSchemas` — schemas to restore. Schemas not listed here are skipped.
+- `spec.mysqlShellLoad.includeTables` — tables to restore, in `schema.table` form. Tables inside the listed schemas but not enumerated here are skipped.
+
+If every table inside a schema should be restored, omit `includeTables` and rely on `includeSchemas` alone. If `includeTables` is set, every table you want must be enumerated — table names without a schema prefix are rejected.
+
+### 2. Watch the restore complete
+
+```bash
+kubectl -n tsl-x get mysqlrestore restore-full-tables -w
+```
+
+The restore is finished when the CR transitions to the `ready` state.
+
+### 3. Validate
+
+Connect to the target cluster's read-write endpoint and verify that only the requested schemas and tables exist:
+
+```bash
+kubectl -n tsl-x exec -it new-0 -c mysql -- \
+  mysql -uroot -p"$MYSQL_PASSWORD" \
+        -e "SHOW DATABASES; SELECT COUNT(*) FROM fu.user;"
+```
+
+To rehearse the workflow end-to-end on a sandbox:
+
+1. Create several databases on the source MGR cluster and trigger a full backup.
+2. Apply the `MySQLRestore` shown above against a freshly-created empty target cluster.
+3. After the restore reaches `ready`, confirm that only the listed schemas and tables exist in the target.

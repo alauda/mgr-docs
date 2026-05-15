@@ -1,0 +1,211 @@
+---
+weight: 105
+i18n:
+  title:
+    en: Restore MGR Across Namespaces and Clusters
+    zh: MGR 跨命名空间与跨集群恢复方案
+title: Restore MGR Across Namespaces and Clusters
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Restore MGR Across Namespaces and Clusters
+
+When a backup taken from one MGR cluster needs to be restored into a different namespace, or even a different Kubernetes cluster, the default `MySQLRestore` flow — which assumes the backup CR lives in the same namespace as the restore target — is not sufficient. This how-to covers the two cross-boundary recipes: a namespace-level restore when both source and target namespaces are reachable, and a cluster-level restore that uses a synthetic `MySQLMeta` resource when the source namespace is unreachable.
+
+## Background
+
+Each MGR backup writes two artifacts to S3:
+
+- the data archive (`.tar.zst`)
+- a `<backup>-meta.yaml` sidecar that mirrors the in-cluster `MySQLBackup` CR's `status` block.
+
+When the source `MySQLBackup` CR is reachable, the operator reads the status directly from it. When it is not, the equivalent status is reconstructed locally as a `MySQLMeta` resource that points at the same S3 prefix; the operator then drives the restore from that surrogate.
+
+This procedure requires backups produced by the `mysqlsh` executor (default in v4.x). Older `mysqldump`-based backups are not compatible.
+
+## Prerequisites
+
+- Both source and target sides take backups against the same S3 endpoint, bucket, and credentials.
+- The target side has the S3 storage configured under **Backup Center → External S3 Storage** using the same name that was used on the source side.
+- The target `Mysql` cluster (called `new` in the examples) already exists in the target namespace (`tsl-o`).
+
+## Cross-namespace restore
+
+Use this flow when the source namespace lives in the same Kubernetes cluster and the source `MySQLBackup` CRs are reachable from the target namespace. Set `spec.source.namespace` on the `MySQLRestore` CR to the namespace that holds the source backup.
+
+### Restore from a specific full backup
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: MySQLRestore
+metadata:
+  name: mgr-ns-bk
+  namespace: tsl-o
+spec:
+  backup:
+    name: mgr-full
+  cluster:
+    name: new
+  source:
+    name: mgr
+    namespace: tsl-x
+    type: cluster
+```
+
+### Point-in-time restore
+
+`timePoint` accepts any timestamp covered by an incremental backup. The valid range is visible on the source instance's restore page in the UI, or by inspecting the source `MySQLBackup` CRs' `status.validTimeRange`.
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: MySQLRestore
+metadata:
+  name: mgr-ns-tp
+  namespace: tsl-o
+spec:
+  cluster:
+    name: new
+  source:
+    name: mgr
+    namespace: tsl-x
+    type: cluster
+  timePoint: "2024-04-15T07:26:27Z"
+```
+
+## Cross-cluster restore
+
+Use this flow when the source namespace is unreachable — for example, the source cluster has been retired or only the S3 bucket has survived.
+
+### 1. Create a `MySQLMeta` placeholder
+
+In the target namespace, create an empty `MySQLMeta`. Pick a name that does **not** collide with the target instance name and is **not** of the form `<instance>-meta` — both are reserved by the operator for internal bookkeeping.
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: MySQLMeta
+metadata:
+  name: mgr-meta-o
+  namespace: tsl-o
+spec: {}
+```
+
+### 2. Populate the meta status from the S3 sidecar
+
+In S3, locate the source instance's backup prefix and download the `<backup>-meta.yaml` file. Copy the entire top-level `status:` block out of it.
+
+Open the `MySQLMeta` status subresource and paste:
+
+```bash
+kubectl -n tsl-o edit --subresource status mysqlmeta mgr-meta-o
+```
+
+A populated status looks like this (one full backup plus one incremental backup):
+
+```yaml
+status:
+  cluster: mgr
+  tidyBackup: mgr-incr
+  validTimeRange:
+    - endIndex: 1
+      endTime: "2024-04-15T07:26:27Z"
+      startTime: "2024-04-15T07:22:18Z"
+  backupInfos:
+    - name: mgr-full
+      spec:
+        cluster:
+          name: mgr
+        storage:
+          s3:
+            bucket: data
+            endpoint: http://127.0.0.1:19000
+            secret:
+              name: backup-s3
+        type: full
+      status:
+        allocated: mgr-0
+        dataEndTime: "2024-04-15T07:22:13Z"
+        executor: mysqlsh
+        finishTime: "2024-04-15T07:22:13Z"
+        gtidEnd: 4940c3be-faf8-11ee-9e9a-000000ed26ce:114
+        memberSize: 1
+        path: mgr/tsl-x/mgr/full/backup-2024-04-15T07:22:12Z.tar.zst
+        startTime: "2024-04-15T07:22:12Z"
+        state: succeeded
+    - name: mgr-incr
+      spec:
+        cluster:
+          name: mgr
+        storage:
+          s3:
+            bucket: data
+            endpoint: http://81.68.232.254:19000
+            secret:
+              name: backup-s3
+        type: incr
+      status:
+        allocated: mgr-0
+        dataEndTime: "2024-04-15T07:26:27Z"
+        dataStartTime: "2024-04-15T07:22:18Z"
+        executor: mysqlsh
+        finishTime: "2024-04-15T07:26:32Z"
+        gtidEnd: 4940c3be-faf8-11ee-9e9a-000000ed26ce:160
+        gtidFullPrevious: 4940c3be-faf8-11ee-9e9a-000000ed26ce:114
+        gtidPrevious: 4940c3be-faf8-11ee-9e9a-000000ed26ce:114
+        gtidStart: 4940c3be-faf8-11ee-9e9a-000000ed26ce:115
+        memberSize: 1
+        path: mgr/tsl-x/mgr/incr/backup-2024-04-15T07:26:31Z.tar.zst
+        startTime: "2024-04-15T07:26:31Z"
+        state: succeeded
+```
+
+### 3. Create the restore against the meta
+
+Reference the `MySQLMeta` as `source.type: meta`.
+
+#### Restore from a specific full backup
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: MySQLRestore
+metadata:
+  name: mgr-cs-bk
+  namespace: tsl-o
+spec:
+  backup:
+    name: mgr-full
+  cluster:
+    name: new
+  source:
+    name: mgr-meta-o
+    type: meta
+```
+
+#### Point-in-time restore
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: MySQLRestore
+metadata:
+  name: mgr-cs-tp
+  namespace: tsl-o
+spec:
+  cluster:
+    name: new
+  source:
+    name: mgr-meta-o
+    type: meta
+  timePoint: "2024-04-15T07:26:27Z"
+```
+
+The operator reads the backup metadata from the `MySQLMeta` status, downloads the artifacts from S3, and restores them into the `new` cluster in the target namespace. Monitor progress with:
+
+```bash
+kubectl -n tsl-o get mysqlrestore mgr-cs-bk -o yaml
+```
+
+The restore is finished when `.status.phase` reaches `succeeded`.

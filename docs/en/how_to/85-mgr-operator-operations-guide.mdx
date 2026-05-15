@@ -1,0 +1,217 @@
+---
+weight: 85
+i18n:
+  title:
+    en: MySQL Group Replication Operator Operations Guide
+    zh: MySQL Group Replication Operator 运维手册
+title: MySQL Group Replication Operator Operations Guide
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# MySQL Group Replication Operator Operations Guide
+
+This guide summarizes the MySQL Group Replication (MGR) architecture and the operational knowledge needed to keep a `Mysql` CR-managed cluster healthy. It covers the consistency model, the membership and recovery flows, the upstream limits MGR imposes on the schema, and recipes for the most common failure modes seen during day-2 operations.
+
+## Background
+
+### Architecture
+
+MGR is an upstream MySQL plugin. Each node runs a complete MySQL Server instance and replicates ROW-format binary logs identified by GTIDs. Three nodes is the default deployment shape; the group can scale up to the limit imposed by upstream (see [MGR limits](#mgr-limits)).
+
+The plugin stack consists of four layers:
+
+1. **APIs layer** — entry point inside MySQL Server.
+2. **Components layer** — captures transaction metadata.
+3. **Replication protocol module** — propagates transactions between members.
+4. **GCS API + Paxos engine** — drives consensus and guarantees that committed transactions are eventually applied on every member.
+
+Applications drive transactions against MySQL Server; the APIs layer hands them to the components layer, the replication protocol ships them to peers, and Paxos guarantees eventual consistency across the group.
+
+A group can run in one of two modes:
+
+- **Single-primary** (operator default) — one writable PRIMARY plus read-only SECONDARY members. The Router transparently routes writes to the PRIMARY.
+- **Multi-primary** — every member accepts writes.
+
+In either mode the data stored on each member is identical: writes performed against one member are propagated to every other member. Nothing is shared; every member keeps its own full, independent copy.
+
+### Member states
+
+| State | Description | Counts toward quorum |
+| --- | --- | --- |
+| `ONLINE` | Fully functional group member; clients can connect and run transactions. | Yes |
+| `RECOVERING` | Member is joining the group and pulling state from a donor. | No |
+| `OFFLINE` | Plugin is loaded but the member is not part of any group. | No |
+| `ERROR` | Recovery or applier failed; the member has dropped out. | No |
+| `UNREACHABLE` | The local failure detector suspects the member has crashed or the network has dropped. | No |
+
+Inspect the live group state from any member:
+
+```sql
+SELECT MEMBER_HOST, MEMBER_PORT, MEMBER_STATE, MEMBER_ROLE
+FROM performance_schema.replication_group_members;
+```
+
+### Views
+
+MGR organizes membership into **group views** identified by a `view_id`. A view spans the time interval during which the membership does not change. Any join or leave triggers a view change and bumps the view id.
+
+The view id has two parts:
+
+- **Timestamp prefix** — stamped when the group is bootstrapped. Constant for the lifetime of the group.
+- **Sequence number** — starts at 1 and increments on every join or leave.
+
+Inspect current group-level statistics:
+
+```sql
+SELECT * FROM performance_schema.replication_group_member_stats\G
+```
+
+### Join flow
+
+When a new member joins:
+
+1. The joiner connects to a member listed in `group_replication_group_seeds` over TCP.
+2. The seed checks the IP allow list (`group_replication_ip_whitelist`). MGR places no restriction by default.
+3. The seed broadcasts a view-change message to every existing member, including the joiner.
+4. Every member emits a state-exchange message; each side updates its local member list.
+5. The joiner runs **distributed recovery** to catch up on data, then transitions to `ONLINE`.
+
+The sequence is **view switch → data sync → Paxos message application → ONLINE**. Reaching the new view does **not** mean the joiner serves traffic — recovery must complete first.
+
+### Distributed recovery
+
+Recovery completes in two phases:
+
+**Phase 1 — Learn**
+
+- The joiner picks an ONLINE donor.
+- Standard asynchronous replication ships the donor's binary log up to the point at which the joiner became part of the view.
+- Concurrently, every transaction broadcast in the group is buffered locally on the joiner.
+
+**Phase 2 — Catch up**
+
+- The joiner drains the buffered queue.
+- When the queue reaches zero, the member is promoted to `ONLINE`.
+
+### Leaving the group
+
+Members can leave voluntarily or involuntarily; the cluster reacts very differently in each case.
+
+**Voluntary leave** — triggered by `STOP GROUP_REPLICATION` or a graceful shutdown:
+
+- The leaver triggers a view change and waits until the majority of members agree on the new configuration before exiting.
+- The group size shrinks; no quorum votes are "lost". A 5-node group becomes a 4-node group and never blocks because of the leave.
+
+**Involuntary leave** — crash, network partition, OS failure:
+
+- The failure detector flags the member; a view-change is broadcast.
+- The expected group size **does not change** — the member is marked `UNREACHABLE` instead of being removed.
+- Quorum is held against the original group size. If too many members leave involuntarily, the remaining ONLINE members lose quorum and the group blocks new writes.
+
+Worked example with a 5-node group:
+
+- One node crashes → 4 ONLINE, 1 UNREACHABLE → group keeps majority and continues serving.
+- Two more nodes crash → 2 ONLINE, 3 UNREACHABLE → no majority → group blocks until an operator intervenes.
+
+### MGR limits
+
+| Limit | Detail |
+| --- | --- |
+| Maximum members | 9 per group. Additional join requests are rejected. Upstream benchmarking established this as a safe upper bound on stable LAN topologies. |
+| Storage engine | Tables must use InnoDB. The optimistic concurrency model and commit-time conflict detection depend on InnoDB internals. System tables like `mysql.user` can remain MyISAM because they almost never change. |
+| Primary key | Every table requires an **explicit** primary key — not the InnoDB rowid. The primary key is used both for conflict detection at commit time and for efficient relay-log apply. |
+| Isolation level | `READ COMMITTED` is recommended. `SERIALIZABLE` is not supported. RC avoids gap locks and pairs well with the distributed conflict detector. |
+| Foreign keys | Cascading foreign keys are discouraged. If a legacy schema with cascades must run in multi-primary mode, set `group_replication_enforce_update_everywhere_check` so cross-member checks are enforced. |
+
+## Troubleshooting
+
+### First cluster member fails to initialize
+
+**Symptom**
+
+A fresh `Mysql` CR is created but the first pod never becomes Ready: the `mysql` container starts, the `mysql-agent` sidecar never reaches Ready, and the bootstrap stalls.
+
+**Cause**
+
+PVCs left behind by a previously-deleted cluster with the **same name** are being re-attached to the new cluster. The on-disk state belongs to a different bootstrap and the agent refuses to initialize over it.
+
+**Resolution**
+
+1. List PVCs in the namespace and look for ones whose names match the new cluster but whose creation timestamps or `volumeName` indicate they belong to a deleted cluster:
+
+   ```bash
+   kubectl -n <namespace> get pvc -l app.kubernetes.io/instance=<cluster>
+   ```
+
+2. Either pick a different cluster name in the new `Mysql` CR, or remove the orphan PVCs and re-create the cluster:
+
+   ```bash
+   kubectl -n <namespace> delete pvc -l app.kubernetes.io/instance=<cluster>
+   ```
+
+   :::warning
+   Deleting PVCs is destructive. Confirm no in-use data lives on those volumes before deletion.
+   :::
+
+### Cluster cannot recover after an OOM kill, even after raising memory
+
+**Symptom**
+
+The `mysql` container is OOM-killed during bootstrap. Memory limits are raised on the `Mysql` CR, but the cluster still cannot come up. The `mysql` and `mysql-agent` logs show password-related authentication failures during initialization.
+
+**Cause**
+
+The MGR bootstrap script populates the root password as part of the first-start initialization. If the container is killed before initialization completes, MySQL ends up with an empty internal password while the operator still treats the configured password as canonical. Every subsequent connection from `mysql-agent` fails authentication.
+
+**Resolution**
+
+There is no in-place fix: the on-disk MySQL state is desynced from the operator's password Secret. Re-create the cluster from scratch with the larger limits set up front.
+
+1. Delete the `Mysql` CR. If you do not need the corrupted data, also delete the associated PVCs.
+2. Re-create the `Mysql` CR with the larger memory limits applied via a pod patch so the new bootstrap completes safely:
+
+   ```yaml
+   spec:
+     mgr:
+       patches:
+         podPatches:
+           mysql:
+             spec:
+               containers:
+                 - name: mysql
+                   resources:
+                     limits:
+                       memory: 8Gi
+                     requests:
+                       memory: 4Gi
+   ```
+
+### A pod is stuck during a rolling update
+
+**Symptom**
+
+During a rolling upgrade or parameter change one of the MGR pods stops responding. The `mysql` container is up but `mysql-agent` cannot connect to it, and the rest of the group still has quorum.
+
+**Resolution**
+
+1. Try to log in to the unresponsive pod's `mysql` container manually:
+
+   ```bash
+   kubectl -n <namespace> exec -it <pod> -c mysql -- \
+     mysql -uroot -p"$MYSQL_PASSWORD" -e "SELECT 1"
+   ```
+
+2. If the connection hangs or times out, delete the pod so the StatefulSet recreates it:
+
+   ```bash
+   kubectl -n <namespace> delete pod <pod>
+   ```
+
+3. Wait for the operator to bring the new pod into the group — first as `RECOVERING`, then as `ONLINE`. The rolling update resumes automatically once the member is healthy.
+
+   If the operator already has aggressive readiness-probe thresholds configured, the kubelet eventually restarts the container on its own and the operator rebuilds membership without manual deletion.

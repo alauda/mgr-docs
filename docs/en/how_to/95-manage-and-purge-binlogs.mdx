@@ -1,0 +1,131 @@
+---
+weight: 95
+i18n:
+  title:
+    en: Manage and Purge MGR Binary Logs to Reclaim Disk
+    zh: MGR 二进制日志（binlog）的清理与容量回收
+title: Manage and Purge MGR Binary Logs to Reclaim Disk
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Manage and Purge MGR Binary Logs to Reclaim Disk
+
+MySQL binary logs grow until they are purged either automatically (via the retention parameter) or manually (via `PURGE BINARY LOGS`). On an MGR cluster the operator leaves retention to your policy, so it is common to discover that the data PVC has filled with binlogs after a capacity-planning miscalculation. This page covers the supported ways to set retention, drop old binlogs, and avoid taking the cluster down while doing it.
+
+## Background
+
+### Recommendations before purging
+
+- Retain at least **7 days** of binary logs whenever possible — Group Replication needs them for distributed recovery, and DBAs need them for point-in-time restore.
+- Do **not** delete binlogs from the past 24 hours; an MGR donor may still be using them to bring up a recovering member.
+- Purging binlogs is a metadata + sequential-delete operation; it does **not** spike disk IOPS for the running workload.
+
+### Retention parameters
+
+MySQL 8.0 exposes two parameters that control automatic purging:
+
+| Parameter | Versions | Default | Notes |
+| --- | --- | --- | --- |
+| `expire_logs_days` | All 8.0; deprecated since 8.0.3 | `0` (≤ 8.0.1 and ≥ 8.0.11); `30` (8.0.2–8.0.4) | Number of days; `0` disables auto-purge. |
+| `binlog_expire_logs_seconds` | Introduced in 8.0.1 | `0` (≤ 8.0.4); `2592000` = 30 days (≥ 8.0.11) | Seconds; if both are set, this one wins and `expire_logs_days` is ignored with a warning. |
+| `binlog_expire_logs_auto_purge` | 8.0+ | `ON` | Must be `ON` for either of the above to take effect. |
+
+Use `binlog_expire_logs_seconds` exclusively on 8.0.1 and later; treat `expire_logs_days` as legacy.
+
+## Procedure
+
+You have three options, ordered from least disruptive to most surgical:
+
+1. Set a runtime retention value with `SET GLOBAL` (resets on Pod restart).
+2. Set a persistent retention value via the `Mysql` CR (survives restarts; preferred for steady-state).
+3. Force-delete older binlogs with `PURGE BINARY LOGS` when you need an immediate reclaim.
+
+### Option 1 — Temporary retention via `SET GLOBAL`
+
+Useful when you need to reclaim space *right now* and a CR change would be too slow. The setting is lost on the next Pod restart.
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql -- /bin/bash
+mysql -uroot -hlocalhost -p"$MYSQL_ROOT_PASSWORD"
+```
+
+```sql
+SET GLOBAL binlog_expire_logs_seconds = 604800;   -- 7 days
+SET GLOBAL binlog_expire_logs_auto_purge = ON;
+
+SHOW VARIABLES LIKE '%expire_logs%';
+-- +-------------------------------+--------+
+-- | Variable_name                 | Value  |
+-- +-------------------------------+--------+
+-- | binlog_expire_logs_auto_purge | ON     |
+-- | binlog_expire_logs_seconds    | 604800 |
+-- | expire_logs_days              | 0      |
+-- +-------------------------------+--------+
+
+FLUSH LOGS;
+```
+
+The `FLUSH LOGS` (or any other event that rotates the binlog) is what actually triggers MySQL to delete files older than the retention window — the `SET GLOBAL` alone only updates the policy.
+
+Apply the same change on every MGR Pod (`<cluster>-0`, `<cluster>-1`, `<cluster>-2`) — each member maintains its own binlog stream.
+
+The MySQL root password lives in the cluster's Kubernetes Secret:
+
+```bash
+kubectl get secret -n <namespace> <cluster>-secret \
+  -o jsonpath='{.data.MYSQL_ROOT_PASSWORD}' | base64 -d ; echo
+```
+
+### Option 2 — Persistent retention via the `Mysql` CR
+
+Edit the CR so the values survive Pod restarts. The operator will roll the StatefulSet once and apply the values everywhere.
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: Mysql
+metadata:
+  name: <cluster>
+  namespace: <namespace>
+spec:
+  params:
+    mysql:
+      mysqld:
+        binlog_expire_logs_auto_purge: "ON"
+        binlog_expire_logs_seconds: "604800"
+```
+
+Apply and verify:
+
+```bash
+kubectl apply -f <cluster>.yaml
+kubectl rollout status -n <namespace> sts/<cluster>
+
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql -- \
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW VARIABLES LIKE '%expire_logs%';"
+```
+
+### Option 3 — Force-delete with `PURGE BINARY LOGS`
+
+When the disk is critically full and waiting for the next rotation is not acceptable.
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql -- /bin/bash
+mysql -uroot -hlocalhost -p"$MYSQL_ROOT_PASSWORD"
+```
+
+```sql
+PURGE BINARY LOGS BEFORE '2026-05-10 00:00:00';
+-- or by file name:
+PURGE BINARY LOGS TO 'binlog.000123';
+```
+
+:::warning
+`PURGE BINARY LOGS` will refuse to delete logs that are still being read by an active replication channel — including an MGR donor that is currently rebuilding a member. Confirm with `SHOW REPLICA STATUS` and `SELECT * FROM performance_schema.replication_connection_status` that no member is mid-recovery before purging, otherwise you may force that member back into full clone.
+:::
+
+After purging, repeat the same command on the other MGR members — purging on one Pod does not propagate.

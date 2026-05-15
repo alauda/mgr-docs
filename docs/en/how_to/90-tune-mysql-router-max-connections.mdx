@@ -1,0 +1,130 @@
+---
+weight: 90
+i18n:
+  title:
+    en: Raise the MySQL Router Connection Cap
+    zh: 调整 MySQL Router 的最大连接数
+title: Raise the MySQL Router Connection Cap
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Raise the MySQL Router Connection Cap
+
+MySQL Router ships with `max_total_connections = 512` and the MySQL server itself defaults to `max_connections = 151`. Workloads that need more concurrent client connections will see `Too many connections` errors well before either of these knobs is intentionally tuned. This page walks through raising the cap on both layers, plus the idle-connection timeouts that typically need raising at the same time.
+
+## Background
+
+Three related knobs control client-connection capacity on an MGR cluster:
+
+- **`max_connections` on the MySQL server** — the per-instance cap; clients connecting through Router are still counted here once the connection is routed to a backend.
+- **`max_total_connections` in Router's `[DEFAULT]` section** — the cap Router applies before opening a backend connection.
+- **`wait_timeout` / `interactive_timeout` on MySQL** — how long an idle client connection is allowed to live before MySQL closes it. If applications keep long-lived idle connections, both of these need raising or the connection budget churns unnecessarily.
+
+In v4.x the canonical place to set all of these is `spec.params.*` on the `Mysql` CR; the operator renders the values into the running `my.cnf` and Router config, then performs a rolling restart.
+
+## Procedure
+
+### 1. Back the cluster up before changing parameters
+
+A rolling restart on a misconfigured CR can leave the cluster wedged. Take a logical dump first.
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql -- /bin/bash
+```
+
+Inside the Pod:
+
+```bash
+mysqldump \
+  --user=root --host=localhost --password="$MYSQL_ROOT_PASSWORD" \
+  --single-transaction --source-data=1 --set-gtid-purged=AUTO \
+  --triggers -R -E -A \
+  > /var/lib/mysql/$(date +%Y%m%d)_fullbackup.sql
+```
+
+Only `/var/lib/mysql` is writable inside the container. After the dump finishes, copy it off the Pod with `kubectl cp` if you want to keep it outside the PVC.
+
+Also save the current CR for rollback:
+
+```bash
+kubectl get mysql -n <namespace> <cluster> -o yaml > <cluster>-backup.yaml
+```
+
+### 2. Edit the `Mysql` CR
+
+Set the new connection cap on both the MySQL server and Router, and bump the idle-connection timeouts so long-lived clients are not reaped at the old 3600 s default.
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: Mysql
+metadata:
+  name: <cluster>
+  namespace: <namespace>
+spec:
+  params:
+    mysql:
+      mysqld:
+        max_connections: "2000"
+        wait_timeout: "86400"
+        interactive_timeout: "86400"
+    router:
+      DEFAULT:
+        max_total_connections: "2000"
+```
+
+Apply:
+
+```bash
+kubectl apply -f <cluster>.yaml
+```
+
+:::warning
+The MySQL server's `max_connections` must be at least as large as Router's `max_total_connections`. If Router opens more backend connections than the server allows, clients will see authentication-time failures instead of a clean limit.
+:::
+
+### 3. Watch the rolling restart
+
+The operator restarts the MGR StatefulSet one Pod at a time. Verify each Pod re-joins the group before the next one is cycled:
+
+```bash
+kubectl get pods -n <namespace> -l app.kubernetes.io/instance=<cluster> -w
+kubectl logs -n <namespace> <cluster>-0 -c mysql-agent --tail=200 -f
+```
+
+Once the three MGR Pods are `Ready` again, the operator restarts the Router Deployment:
+
+```bash
+kubectl rollout status -n <namespace> deploy/<cluster>-router
+```
+
+### 4. Verify the new values
+
+On any MGR Pod:
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql -- \
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW VARIABLES LIKE '%timeout%';"
+```
+
+Confirm `wait_timeout` and `interactive_timeout` both read `86400`, and `max_connections` reads `2000`.
+
+On any Router Pod, confirm the rendered config file picked up the new cap:
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-router-<id> -c router -- \
+  cat /tmp/mysqlrouter/custom.conf
+```
+
+Look for:
+
+```ini
+[DEFAULT]
+max_total_connections = 2000
+```
+
+If the value still reads `512`, check that the change actually landed under `spec.params.router.DEFAULT.*` (the legacy `spec.mgr.router.configuration` block is still accepted but will be ignored if `spec.params.router` is also present).

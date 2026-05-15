@@ -1,0 +1,254 @@
+---
+weight: 100
+i18n:
+  title:
+    en: Enable MySQL Plugins on an MGR Cluster
+    zh: 在 MGR 集群上启用 MySQL 插件
+title: Enable MySQL Plugins on an MGR Cluster
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Enable MySQL Plugins on an MGR Cluster
+
+This page covers enabling MySQL server plugins on an MGR cluster managed by Alauda Application Services. It distinguishes the two common scenarios: enabling a built-in plugin that already ships in the MGR image, and shipping a custom plugin shared object via an init container.
+
+## Background
+
+MySQL loads server plugins from the directory pointed to by the `plugin_dir` system variable. The MGR image bundles the upstream and Percona-distributed plugins in `/usr/lib64/mysql/plugin/` (audit log, keyring, validate_password, semisync, group_replication, clone, etc.), so most enablement work amounts to flipping `plugin_load_add` on at server start.
+
+On v4.x the operator surfaces plugin configuration through `spec.params.mysql.mysqld` on the `Mysql` CR. Custom plugin shared objects are delivered by patching the `mysql` container Pod spec via `spec.mgr.patches.podPatches.mysql`.
+
+Legacy paths (`spec.paras`, `spec.mgr.paras`, `spec.mgr.configuration`) still work for backward compatibility but are not the recommended entry point on v4.x — prefer the paths shown below.
+
+## Inspect the bundled plugins
+
+Connect to the `mysql` container of any cluster member and read `plugin_dir`:
+
+```bash
+kubectl exec -it <cluster>-mgr-0 -n <namespace> -c mysql -- \
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW VARIABLES LIKE 'plugin_dir';"
+```
+
+Sample output:
+
+```text
++---------------+--------------------------+
+| Variable_name | Value                    |
++---------------+--------------------------+
+| plugin_dir    | /usr/lib64/mysql/plugin/ |
++---------------+--------------------------+
+```
+
+List the shared objects available in that directory:
+
+```bash
+kubectl exec -it <cluster>-mgr-0 -n <namespace> -c mysql -- \
+  ls -lh /usr/lib64/mysql/plugin/
+```
+
+The image ships a broad selection including `audit_log.so`, `audit_log_filter.so`, `keyring_file.so`, `keyring_vault.so`, `component_keyring_kmip.so`, `validate_password.so`, `connection_control.so`, `semisync_source.so`, `group_replication.so`, `mysql_clone.so`, and the various authentication plugins.
+
+List the plugins currently loaded by the running server:
+
+```sql
+SELECT PLUGIN_NAME, PLUGIN_STATUS, PLUGIN_TYPE, LOAD_OPTION
+FROM information_schema.PLUGINS
+ORDER BY PLUGIN_TYPE, PLUGIN_NAME;
+```
+
+## Enable a built-in plugin
+
+To load a plugin that already ships in the image, set `plugin_load_add` under `spec.params.mysql.mysqld` and add any plugin-specific options on the same level. Multiple plugins can be enabled by separating shared object names with a semicolon: `plugin_load_add: "plugin_a.so;plugin_b.so"`.
+
+Example — enable the Percona audit log plugin with a CSV format and a login-only policy:
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: Mysql
+metadata:
+  name: <cluster>
+  namespace: <namespace>
+spec:
+  params:
+    mysql:
+      mysqld:
+        plugin_load_add: "audit_log.so"
+        loose_audit_log_exclude_accounts: "exporter@localhost,healthchecker@localhost,manage@localhost,clusterchecker@%"
+        loose_audit_log_format: "CSV"
+        loose_audit_log_policy: "LOGINS"
+```
+
+:::info
+The `loose_` prefix on audit options ensures the server keeps starting even if the plugin is not loaded yet on the very first boot. Once `plugin_load_add` is in effect on subsequent restarts, the prefixed options apply normally.
+:::
+
+Apply the change and wait for the operator to roll the StatefulSet:
+
+```bash
+kubectl apply -f mysql.yaml
+kubectl rollout status -n <namespace> statefulset/<cluster>-mgr
+```
+
+## Enable a custom plugin
+
+Custom plugins ship as additional `.so` files that must be present in `plugin_dir` before the server starts. Use an init container to stage the binary into a shared `emptyDir` volume, mount that volume into the `mysql` container, and point `plugin_dir` at the staged path.
+
+### Pattern 1 — copy from a hostPath
+
+Use this when the plugin binary is pre-staged under a known directory on every node (for example, by a cluster-wide DaemonSet or external provisioning step). The init container copies the binary into the `emptyDir` shared with `mysql`.
+
+```yaml
+apiVersion: mysql.middleware.alauda.io/v1
+kind: Mysql
+metadata:
+  name: <cluster>
+  namespace: <namespace>
+spec:
+  params:
+    mysql:
+      mysqld:
+        plugin_dir: "/tmp/plugin"
+        plugin_load_add: "audit_log_my.so"
+        loose_audit_log_exclude_accounts: "exporter@localhost,healthchecker@localhost,manage@localhost,clusterchecker@%"
+        loose_audit_log_format: "CSV"
+        loose_audit_log_policy: "LOGINS"
+  mgr:
+    patches:
+      podPatches:
+        mysql:
+          spec:
+            containers:
+              - name: mysql
+                volumeMounts:
+                  - mountPath: /tmp/plugin
+                    name: plugin
+            initContainers:
+              - name: copy-community-plugins
+                image: build-harbor.alauda.cn/middleware/rds-operator:<tag>
+                imagePullPolicy: IfNotPresent
+                command:
+                  - sh
+                  - -c
+                  - cp -r /host-plugin/* /plugin/ && chmod -R +x /plugin
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 500Mi
+                  requests:
+                    cpu: 100m
+                    memory: 500Mi
+                securityContext:
+                  runAsNonRoot: false
+                terminationMessagePolicy: FallbackToLogsOnError
+                volumeMounts:
+                  - mountPath: /plugin/
+                    name: plugin
+                  - mountPath: /host-plugin/
+                    name: host-plugin
+            volumes:
+              - name: host-plugin
+                hostPath:
+                  path: /plugin
+                  type: Directory
+              - name: plugin
+                emptyDir: {}
+```
+
+### Pattern 2 — download with an init container
+
+Use this when the plugin binary is hosted on an internal HTTP/S endpoint that the cluster can reach. The init container fetches the binary into the shared `emptyDir`.
+
+```yaml
+spec:
+  params:
+    mysql:
+      mysqld:
+        plugin_dir: "/tmp/plugin"
+        plugin_load_add: "audit_log_my.so"
+        loose_audit_log_exclude_accounts: "exporter@localhost,healthchecker@localhost,manage@localhost,clusterchecker@%"
+        loose_audit_log_format: "CSV"
+        loose_audit_log_policy: "LOGINS"
+  mgr:
+    patches:
+      podPatches:
+        mysql:
+          spec:
+            containers:
+              - name: mysql
+                resources: {}
+                volumeMounts:
+                  - mountPath: /tmp/plugin
+                    name: plugin
+            initContainers:
+              - name: copy-community-plugins
+                image: build-harbor.alauda.cn/middleware/rds-operator:<tag>
+                imagePullPolicy: IfNotPresent
+                command:
+                  - sh
+                  - -c
+                  - wget http://<host>:<port>/audit_log_my.so -O /plugin/audit_log_my.so && chmod +x /plugin/audit_log_my.so
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 500Mi
+                  requests:
+                    cpu: 100m
+                    memory: 500Mi
+                securityContext:
+                  runAsNonRoot: false
+                terminationMessagePolicy: FallbackToLogsOnError
+                volumeMounts:
+                  - mountPath: /plugin/
+                    name: plugin
+            volumes:
+              - name: plugin
+                emptyDir: {}
+```
+
+:::warning
+`podPatches.mysql` requires a `containers: [{name: mysql}]` stub even when you only need to add init containers or volumes — the patch is keyed on the container name and the operator will reject a patch that does not list the target container.
+:::
+
+The `volumes` and `volumeMounts` shown above only declare the entries needed for the plugin staging area. The default `mysql` container already has its own volumes (data PVC, config, secrets) managed by the operator — your patch is merged on top, so you do not need to repeat them. If in doubt, create a default cluster first and inspect the resulting StatefulSet:
+
+```bash
+kubectl get statefulset <cluster>-mgr -n <namespace> -o yaml
+```
+
+## Verify
+
+After the StatefulSet has rolled, confirm the plugin is loaded and active:
+
+```sql
+SELECT * FROM information_schema.PLUGINS WHERE PLUGIN_NAME LIKE '%audit%'\G
+```
+
+Expected output for the Percona audit plugin:
+
+```text
+*************************** 1. row ***************************
+           PLUGIN_NAME: audit_log
+        PLUGIN_VERSION: 0.2
+         PLUGIN_STATUS: ACTIVE
+           PLUGIN_TYPE: AUDIT
+   PLUGIN_TYPE_VERSION: 4.1
+        PLUGIN_LIBRARY: audit_log.so
+PLUGIN_LIBRARY_VERSION: 1.11
+         PLUGIN_AUTHOR: Percona LLC and/or its affiliates.
+    PLUGIN_DESCRIPTION: Audit log
+        PLUGIN_LICENSE: GPL
+           LOAD_OPTION: ON
+```
+
+If `PLUGIN_STATUS` is not `ACTIVE`, check the `mysql` container's error log for plugin load errors:
+
+```bash
+kubectl logs -n <namespace> <cluster>-mgr-0 -c mysql | grep -i plugin
+```
+
+Typical failure causes are a missing or non-executable `.so` file in `plugin_dir`, an ABI mismatch between the plugin and the MySQL release shipped in the MGR image, or a required dependent option that was not set under `spec.params.mysql.mysqld`.
