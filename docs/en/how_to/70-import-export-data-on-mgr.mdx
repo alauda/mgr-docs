@@ -1,0 +1,99 @@
+---
+weight: 70
+i18n:
+  title:
+    en: Import and Export Data on an MGR Cluster
+    zh: 在 MGR 集群上进行数据导入导出
+title: Import and Export Data on an MGR Cluster
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Import and Export Data on an MGR Cluster
+
+This page covers the MGR-operator-specific steps for moving a logical dump into and out of an MGR cluster managed by Alauda Application Services. The generic `mysqldump` flags and account-handling guidance are covered separately in the solutions knowledge base; this page focuses on what changes when source or destination is a pod under the MGR operator.
+
+## Background
+
+An MGR cluster managed by the operator runs MySQL inside a StatefulSet (`mysql-mgr-<n>`) with two important constraints:
+
+- The only writable path inside the `mysql` container is `/var/lib/mysql` (data directory) and `/var/lib/mysql-files` (designated by `secure_file_priv`). Dumps and imports must be staged into one of those paths.
+- Writes must be directed at the **Primary** member. Connecting to a Secondary in single-primary mode rejects DML.
+
+## Identify the Primary node
+
+Pick any member of the cluster and ask MySQL which member is currently `PRIMARY`:
+
+```bash
+kubectl exec -it <mgr-pod-0> -n <namespace> -c mysql -- \
+  mysql -uroot -hlocalhost -p"$MYSQL_ROOT_PASSWORD" -e \
+  "SELECT MEMBER_HOST, MEMBER_PORT, MEMBER_STATE, MEMBER_ROLE
+   FROM performance_schema.replication_group_members;"
+```
+
+Look for the row with `MEMBER_ROLE = PRIMARY` and use its host (the pod name) for the import steps below.
+
+## Export data from an MGR cluster
+
+The MGR pod images ship a matching `mysqldump`, so the most reliable way to dump from an MGR cluster is to exec into a pod and write the file to the data directory:
+
+```bash
+kubectl exec -it <mgr-pod-0> -n <namespace> -c mysql -- bash -lc '
+  mysqldump \
+    --host=127.0.0.1 \
+    --user=root \
+    --password="$MYSQL_ROOT_PASSWORD" \
+    --single-transaction \
+    --source-data=1 \
+    --set-gtid-purged=AUTO \
+    --triggers --routines --events \
+    --databases <db1> <db2> \
+  > /var/lib/mysql/$(date +%Y%m%d)_fullbackup.sql
+'
+```
+
+Then copy the resulting file out of the pod:
+
+```bash
+kubectl cp <namespace>/<mgr-pod-0>:/var/lib/mysql/<dump-file>.sql ./<dump-file>.sql -c mysql
+```
+
+:::warning
+`/var/lib/mysql` is the live data directory. Delete the dump after copying it out so it does not occupy datafile space or end up in subsequent operator-managed backups.
+:::
+
+## Import a dump into an MGR cluster
+
+1. **Stage the dump file inside the Primary pod.** Copy the `.sql` to `/var/lib/mysql-files/`, which is the directory allowed by `secure_file_priv`:
+
+   ```bash
+   kubectl cp ./<dump-file>.sql <namespace>/<primary-pod>:/var/lib/mysql-files/ -c mysql
+   ```
+
+2. **Run the import against the Primary.** Connect over the local socket and source the dump:
+
+   ```bash
+   kubectl exec -it <primary-pod> -n <namespace> -c mysql -- bash -lc '
+     mysql -uroot -hlocalhost -p"$MYSQL_ROOT_PASSWORD" \
+       < /var/lib/mysql-files/<dump-file>.sql
+   '
+   ```
+
+   Group Replication propagates the imported transactions to the Secondaries automatically; do not run the import on more than one member.
+
+3. **Recreate application users.** A dump that was prepared with the guidance in [How to Import and Export MySQL Data](../../solutions/How_to_Import_and_Export_MySQL_Data.md) does not contain accounts from the source `mysql` system schema. Create application accounts explicitly on the Primary:
+
+   ```sql
+   CREATE USER 'app'@'%' IDENTIFIED BY '<strong-password>';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON <db>.* TO 'app'@'%';
+   ```
+
+4. **Clean up.** Remove the staged dump from `/var/lib/mysql-files/` once the import has been verified.
+
+## When to prefer the operator-managed backup CR
+
+For full-cluster, scheduled, or cross-cluster restores, use the `MysqlBackup` and `MysqlRestore` CRs provided by the operator instead of a manual `mysqldump` flow — those CRs interact with the platform's backup center and S3 storage and are the supported path for production data movement. The manual procedure on this page is intended for ad-hoc business-data migrations and one-off schema imports.

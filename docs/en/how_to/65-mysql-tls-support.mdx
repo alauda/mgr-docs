@@ -1,0 +1,105 @@
+---
+weight: 65
+i18n:
+  title:
+    en: MySQL TLS Support and Diagnostics
+    zh: MySQL TLS 支持情况与诊断
+title: MySQL TLS Support and Diagnostics
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# MySQL TLS Support and Diagnostics
+
+MySQL 8.0.28 and later only accept `TLSv1.2` and `TLSv1.3` connections by default. Application drivers pinned to `TLSv1` or `TLSv1.1` therefore fail to connect to an MGR cluster running on a recent MySQL 8.0 build. This page explains the upstream default and how to identify sessions still negotiating a deprecated protocol.
+
+## Background
+
+The `tls_version` system variable controls which TLS protocols the MySQL server is willing to negotiate. Upstream defaults changed over the MySQL 8.0 release line:
+
+| MySQL Server release              | `tls_version` default                              |
+| :-------------------------------- | :------------------------------------------------- |
+| 8.0.15 and below                  | `TLSv1,TLSv1.1,TLSv1.2`                            |
+| 8.0.16 – 8.0.27                   | `TLSv1,TLSv1.1,TLSv1.2,TLSv1.3` (with OpenSSL 1.1.1) |
+| 8.0.28 and above                  | `TLSv1.2,TLSv1.3`                                  |
+
+Reference: [MySQL Server TLS Protocol Default Settings](https://dev.mysql.com/doc/refman/8.2/en/encrypted-connection-protocols-ciphers.html#encrypted-connection-protocol-configuration).
+
+The MGR images shipped with Alauda Application Services 4.x are built on MySQL 8.0.28+, so they default to `TLSv1.2,TLSv1.3` and reject legacy protocols.
+
+## Checking the server's TLS protocol set
+
+Connect to any MGR pod and query the variable:
+
+```bash
+kubectl exec -it <mysql-pod> -n <namespace> -c mysql -- \
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW GLOBAL VARIABLES LIKE 'tls_version';"
+```
+
+Expected output for a 4.x MGR cluster:
+
+```text
++---------------+-----------------+
+| Variable_name | Value           |
++---------------+-----------------+
+| tls_version   | TLSv1.2,TLSv1.3 |
++---------------+-----------------+
+```
+
+## Identifying sessions negotiating TLSv1.0 or TLSv1.1
+
+Run the following query against the Primary node. Any rows returned represent sessions that did not negotiate `TLSv1.2` or `TLSv1.3`:
+
+```sql
+SELECT
+  session_ssl_status.thread_id,
+  session_ssl_status.ssl_version,
+  session_ssl_status.ssl_cipher,
+  session_ssl_status.ssl_sessions_reused
+FROM sys.session_ssl_status
+WHERE ssl_version NOT IN ('TLSv1.3','TLSv1.2');
+```
+
+:::info
+Internal MGR replication threads (`group_rpl/THD_applier_module_receiver`, `sql/replica_sql`, `sql/replica_worker`) appear with an empty `ssl_version` because they communicate over the group communication channel rather than a normal client SSL session. They are expected and not a sign of a deprecated client.
+:::
+
+## Listing the application threads and user statements still on legacy TLS
+
+To map a deprecated TLS session back to a user, database, and statement, join `sys.session_ssl_status` with `sys.processlist`:
+
+```sql
+SELECT thd_id, conn_id, user, db, current_statement, program_name
+FROM sys.processlist
+WHERE thd_id IN (
+  SELECT session_ssl_status.thread_id
+  FROM sys.session_ssl_status
+  WHERE ssl_version NOT IN ('TLSv1.3','TLSv1.2')
+);
+```
+
+For a fuller picture (transaction state, last statement, memory usage) use `sys.session`:
+
+```sql
+SELECT *
+FROM sys.session
+WHERE thd_id IN (
+  SELECT session_ssl_status.thread_id
+  FROM sys.session_ssl_status
+  WHERE ssl_version NOT IN ('TLSv1.3','TLSv1.2')
+)\G
+```
+
+## Remediation
+
+If application connections appear with a legacy `ssl_version`, upgrade the affected client driver to a version that negotiates `TLSv1.2` or `TLSv1.3`. Common minimums:
+
+- MySQL Connector/J 8.0.x
+- MySQL Connector/Python 8.0.x
+- libmysqlclient shipped with MySQL 5.7.28+ or 8.0.x
+
+Avoid widening `tls_version` on the server to re-enable `TLSv1` / `TLSv1.1`: those protocols are deprecated upstream and disabled in the MGR base image for compliance reasons.
