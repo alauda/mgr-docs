@@ -1,0 +1,30 @@
+project_name: "Alauda Database for MySQL"
+summary: "Documentation for Alauda Database for MySQL — a high-availability MySQL solution built on MySQL Group Replication and Kubernetes."
+body: |
+  Alauda Database for MySQL provides automated deployment, lifecycle management,
+  and high-availability operation of MySQL Group Replication clusters on
+  Kubernetes via a custom Operator. This repository contains the user-facing
+  English documentation: architecture, installation, upgrades, day-2
+  operational functions (backup/restore, parameter tuning, monitoring,
+  scheduling, etc.), how-to guides, and the Kubernetes CRD API reference.
+
+include_patterns:
+  - "**/*.md"
+  - "**/*.mdx"
+
+exclude_patterns:
+  - "**/node_modules/**"
+  - "**/.git/**"
+  - "**/llms.txt"
+  - "**/CHANGELOG.md"
+  - "**/CONTRIBUTING.md"
+  - "README.md"
+  - "**/.llmstxt-cache/**"
+  - "llmstxt-state.json"
+  - "**/llmstxt-state.json"
+
+grouping_base_path: "docs"
+
+batch_size: 15
+
+description_max_words: 150
