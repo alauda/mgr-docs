@@ -3,6 +3,7 @@ weight: 25
 i18n:
   title:
     en: Upgrade
+    zh: 升级
 sourceSHA: bad20dc1bccc211b5099b8eae64137f02edafcac310c7a753780773b0f75da9a
 title: Upgrade
 ---
@@ -19,6 +20,20 @@ PXC Removal in Alauda Database Service for MySQL v4.3.0
 Alauda Database Service for MySQL-MGR will execute upgrades based on the configured upgrade strategy:
 - **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
 - **Manual** : Requires manual approval before initiating the upgrade process.
+
+There are three kinds of upgrade for MySQL-MGR:
+
+- **Patch version upgrade** — within the same MySQL major version (for example 8.0.x or 8.4.x), to pick up fixes and improvements. See [Patch Version Upgrade](./how_to/30-upgrade).
+- **MySQL major version upgrade (8.0 → 8.4)** — upgrade an existing 8.0 cluster in place to 8.4. See below.
+- **MySQL-PXC to MySQL-MGR migration** — required before upgrading the operator to v4.3.0 or later if you still run PXC instances. See the checklist below and [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc).
+
+## MySQL Major Version Upgrade (8.0 → 8.4)
+
+Starting from v4.4.0, you can upgrade an existing MySQL **8.0** MGR cluster **in place** to MySQL **8.4** without rebuilding the cluster or migrating data. The operator performs a rolling, member-by-member upgrade that preserves data and Group Replication membership, upgrades the InnoDB Cluster metadata automatically, and keeps the cluster serving traffic through MySQL Router.
+
+This is a **major-version** upgrade and is **not reversible** — plan a maintenance window and take a backup first.
+
+For prerequisites and the full step-by-step procedure, see [Upgrade MySQL 8.0 to 8.4](./how_to/32-upgrade-8.0-to-8.4).
 
 ## MySQL-PXC Pre-Upgrade Checklist
 
