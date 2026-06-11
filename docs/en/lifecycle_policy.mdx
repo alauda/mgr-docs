@@ -1,0 +1,37 @@
+---
+weight: 16
+i18n:
+  title:
+    en: Lifecycle Policy
+    zh: 生命周期策略
+title: Lifecycle Policy
+---
+
+# Lifecycle Policy
+
+## Version Lifecycle Timeline
+
+Below is the lifecycle schedule for released versions of the Alauda Database Service for MySQL-MGR:
+
+| Alauda Database Service for MySQL-MGR Version | Release Date | End of Support                                                |
+|:---------------------------------------------:|:------------:|:-------------------------------------------------------------:|
+| v4.4.x                                        | 2026-06-11   | Supported until 1 month after the next minor version is released |
+| v4.3.x                                        | 2026-04-29   | Supported until 1 month after the next minor version is released |
+
+## Release Policy
+
+The Alauda Database Service for MySQL-MGR follows a **rolling support model**:
+
+- The lifecycles of different major versions are independent of each other, and multiple major versions may be in maintenance simultaneously.
+- Each minor version remains supported **until 1 month after the next minor version is officially released**. Patches that apply to each supported minor version are released as needed.
+
+## Maintenance Policy
+
+Alauda provides maintenance support for the Alauda Database Service for MySQL-MGR based on its rolling support model.
+
+During the support period of each version, Alauda provides the following services:
+
+- **Security Updates**: Regular patches and updates in line with Alauda's security standards.
+- **Bug Fixes**: Timely fixes for critical and major issues, aligned with upstream MySQL community fixes.
+- **Upgrade Assistance**: Guidance and support for smooth upgrades between Alauda Database Service for MySQL-MGR versions.
+- **Regular Maintenance**: Periodic updates to ensure the operator remains stable and compatible with the Kubernetes ecosystem.

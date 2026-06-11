@@ -1,0 +1,64 @@
+---
+weight: 32
+i18n:
+  title:
+    en: Upgrade MySQL 8.0 to 8.4
+    zh: 升级 MySQL 8.0 到 8.4
+title: Upgrade MySQL 8.0 to 8.4
+---
+
+# Upgrade MySQL 8.0 to 8.4
+
+Starting from v4.4.0, you can upgrade an existing MySQL **8.0** MGR cluster **in place** to MySQL **8.4** without rebuilding the cluster or migrating data. The operator performs a rolling, member-by-member upgrade: data and Group Replication membership are preserved, the InnoDB Cluster metadata schema is upgraded automatically, and the cluster keeps serving traffic through MySQL Router during the rolling restart.
+
+This is a **major-version** upgrade. Unlike a patch upgrade, it is **not reversible** — plan a maintenance window and make sure you have a recent backup before you start.
+
+## Prerequisites
+
+Before starting the upgrade, confirm all of the following:
+
+1. **Operator upgraded to v4.4.0 or later.** The 8.0 → 8.4 upgrade capability is provided by the v4.4.0 operator. Upgrade the Alauda Database Service for MySQL-MGR operator first; existing 8.0 instances keep running unchanged after the operator upgrade.
+2. **A recent backup exists.** Because a major upgrade cannot be rolled back, take a full backup of the instance (or verify a recent automatic backup) before proceeding. If anything goes wrong, you restore to a new instance from this backup.
+3. **The cluster is healthy.** All members must be `ONLINE` and the instance must be in the `Ready` state. Do not start an upgrade on a degraded cluster.
+4. **Each member has at least 2Gi of memory.** The 8.4 server requires more memory than 8.0 at startup. Make sure each member's memory limit is **≥ 2Gi**; increase the instance specification first if needed.
+5. **Single-primary topology is recommended.** The in-place upgrade is validated for single-primary clusters.
+
+## Upgrade Procedure
+
+<Tabs>
+  <Tab label="Web Console">
+    1. Go to the instance detail page of the 8.0 MGR cluster you want to upgrade.
+
+    2. When a major-version upgrade is available, the detail page shows an upgrade prompt. Click **Upgrade**.
+
+    3. Select the target version **8.4** and confirm.
+
+    4. Confirm the upgrade. The operator starts the rolling upgrade automatically.
+  </Tab>
+</Tabs>
+
+## What Happens During the Upgrade
+
+After you trigger the upgrade, the operator:
+
+1. **Runs pre-checks.** Each member is checked for upgrade readiness (equivalent to the MySQL `checkForServerUpgrade` utility). If a member is not in a safe replication-consistency state, the operator reconciles it first, so the upgrade is safe even from a mixed starting state. The upgrade does not proceed until all pre-checks pass.
+
+2. **Rolls the members one at a time.** Secondary members are upgraded first; the primary role is handed over (abdicated) before the current primary is upgraded, so there is always an active primary. MySQL Router keeps routing read and write traffic to the available primary throughout.
+
+3. **Upgrades the InnoDB Cluster metadata.** The cluster metadata schema is upgraded to the version required by 8.4 automatically.
+
+4. **Completes.** Once every member is running 8.4, the instance reports the new version and returns to the `Ready` state with Group Replication fully reconverged.
+
+## Verify the Upgrade
+
+After the upgrade completes, confirm:
+
+- The instance state is **Ready** and the reported version is **8.4.x**.
+- All Group Replication members are **ONLINE** (3/3 for a three-member cluster).
+- Read and write connections through MySQL Router succeed.
+- Your application data is intact.
+
+## Troubleshooting
+
+- **The cluster does not return to `Ready`.** Check that every member meets the memory prerequisite (≥ 2Gi) and that the cluster was healthy before the upgrade. Inspect the instance events and member states.
+- **You need to roll back.** A major upgrade cannot be reversed in place. Restore the backup taken in the prerequisites to a **new** instance, then redirect your application to it.
