@@ -6,29 +6,29 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
-## v4.0.1
-
-### Fixed Issues
-
-{/* release-notes-for-bugs?template=mw-mgr-v4.0.1-fixed&project=Middleware */}
-
-## v4.0.0
+## v4.4.0
 
 ### New and Optimized Features
 
-#### Component-Platform Decoupling
+#### MySQL 8.4 Support
 
-Alauda Database Services for MySQL-MGR's lifecycle has been decoupled from platform's, which means when customer needs a certain feature or a bug fix, MySQL-MGR team can release immediately instead of waiting for the platform release together.
+MySQL-MGR clusters can now run **MySQL 8.4**, the latest long-term-support release (shipped with MySQL 8.4.8). New instances can be created directly on 8.4, and the parameter templates, monitoring, backup/restore, and router routing are all adapted to the 8.4 server. MySQL-MGR continues to support the single-primary and multi-primary Group Replication topologies on 8.4.
 
-#### Real-Time Logs on Component Details Page
+#### In-Place Upgrade from MySQL 8.0 to 8.4
 
-The logs on MySQL-MGR details page have been replaced with real-time logs that update instantly, facilitating troubleshooting and issue analysis.
+You can now upgrade an existing MySQL 8.0 MGR cluster **in place** to MySQL 8.4 without rebuilding the cluster or migrating data. The operator performs a rolling, member-by-member upgrade that:
+
+- preserves all data and the existing Group Replication membership;
+- upgrades the InnoDB Cluster metadata schema automatically;
+- keeps the cluster serving traffic through MySQL Router during the rolling restart;
+- reconciles members that are not yet in a safe replication-consistency state before proceeding, so the upgrade is safe even from a mixed starting state.
+
+The upgrade is triggered through the standard version-upgrade flow on the instance. See [Upgrade MySQL 8.0 to 8.4](./how_to/32-upgrade-8.0-to-8.4) for prerequisites and the full procedure.
 
 ### Fixed Issues
 
-{/* release-notes-for-bugs?template=mw-mgr-v4.0-fixed&project=Middleware */}
+{/* release-notes-for-bugs?template=mw-mgr-v4.4.0-fixed&project=Middleware */}
 
 ### Known Issues
 
-{/* release-notes-for-bugs?template=mw-mgr-v4.0-known&project=Middleware */}
-
+{/* release-notes-for-bugs?template=mw-mgr-v4.4-known&project=Middleware */}

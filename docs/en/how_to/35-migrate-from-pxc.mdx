@@ -435,13 +435,25 @@ The application must remain stopped (or strictly read-only) from this point unti
    ```
 
    :::tip
-   `SHOW CREATE USER` preserves the original authentication plugin and password hash, so users can log in with their existing passwords after migration. If you need to switch to `mysql_native_password` for client compatibility, run:
+   On a MySQL **8.0** target, `SHOW CREATE USER` preserves the original authentication plugin and password hash, so users can log in with their existing passwords after migration. If you need to switch to `mysql_native_password` for client compatibility, run:
    ```bash
    kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
      mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
        ALTER USER ${user_host} IDENTIFIED WITH mysql_native_password BY '<password>';
      "
    ```
+   :::
+
+   :::warning MySQL 8.4 target
+   On a MySQL **8.4** target the `mysql_native_password` plugin is **not loaded by default and cannot be enabled**, so re-applying a 5.7/8.0 `SHOW CREATE USER` definition (which uses `mysql_native_password`) fails with `ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded`. For an 8.4 target, **recreate each user with the default `caching_sha2_password` plugin** instead of preserving the original hash:
+   ```bash
+   kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+       CREATE USER ${user_host} IDENTIFIED BY '<password>';
+     "
+   # then re-apply the user's GRANTs (collected above)
+   ```
+   This requires knowing or resetting each user's password — the `mysql_native_password` hash cannot be carried over to `caching_sha2_password`. Ensure application drivers/connection strings support `caching_sha2_password`.
    :::
 
 :::tip
@@ -671,7 +683,7 @@ kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
 ERROR 2059 (HY000): Authentication plugin 'caching_sha2_password' cannot be loaded
 ```
 
-**Solution:**
+**Solution (MySQL 8.0 target):** switch the user to `mysql_native_password` for older clients that cannot negotiate `caching_sha2_password`:
 ```bash
 kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
   mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
@@ -679,6 +691,8 @@ kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
     FLUSH PRIVILEGES;
   "
 ```
+
+**Solution (MySQL 8.4 target):** `mysql_native_password` is not available on 8.4 (`ERROR 1524: Plugin 'mysql_native_password' is not loaded`), so you cannot fall back to it. Instead, **upgrade the client driver/connector to a version that supports `caching_sha2_password`** (and use TLS, which `caching_sha2_password` requires for the initial password exchange over a non-local connection). Keep the user on the default `caching_sha2_password` plugin.
 
 ## Troubleshooting
 
