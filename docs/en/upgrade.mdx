@@ -62,7 +62,7 @@ If no PXC instances are found, skip the remaining steps.
 
 Before migrating, run the compatibility analysis on each PXC instance:
 
-- **Schema compatibility**: Detect MySQL 8.0 reserved keywords, ZEROFILL columns, invalid date defaults.
+- **Schema compatibility**: Detect reserved keywords for the target MySQL version (8.0 or 8.4), ZEROFILL columns, invalid date defaults.
 - **Character set analysis**: Identify tables not using `utf8mb4`.
 - **GTID verification**: Ensure `@@gtid_mode = ON` and `@@enforce_gtid_consistency = ON`.
 
@@ -70,9 +70,9 @@ For detailed instructions, see [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migr
 
 ### 4. Create target MGR instances
 
-Create MySQL-MGR 8.0 instances as migration targets **before** starting the operator upgrade. Follow the [Instance Creation Guide](./functions/01-create) with these key settings:
+Create MySQL-MGR instances as migration targets **before** starting the operator upgrade. Follow the [Instance Creation Guide](./functions/01-create) with these key settings:
 
-- **MySQL Version**: `8.0`
+- **MySQL Version**: `8.0` or `8.4`. On operator v4.4.0 and later, `8.4` is recommended for new instances; choose `8.0` only if you need to match the source version first and upgrade to 8.4 later (see [Upgrade MySQL 8.0 to 8.4](./how_to/32-upgrade-8.0-to-8.4)).
 - **Storage**: 2-3x the size of the source PXC database
 - **Resource allocation**: Same or higher than source PXC
 
