@@ -81,8 +81,8 @@ On OpenShift / OCP the same `LoadBalancer` type works with MetalLB (the supporte
 Confirm MetalLB has assigned external IPs to both router services:
 
 ```bash
-kubectl get svc -n <namespace> -l app.kubernetes.io/instance=<cluster> \
-  -o wide | grep LoadBalancer
+kubectl get svc -n <namespace> \
+  -l v1alpha1.mysql.middleware.alauda.io/cluster=<cluster> -o wide | grep LoadBalancer
 ```
 
 Each service should show an address in the `EXTERNAL-IP` column. Connect through the read-write external IP:
