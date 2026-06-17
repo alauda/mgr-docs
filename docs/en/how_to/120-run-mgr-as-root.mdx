@@ -1,0 +1,83 @@
+---
+weight: 120
+i18n:
+  title:
+    en: Run an MGR Cluster as the Root User
+    zh: 以 Root 用户运行 MGR 集群
+title: Run an MGR Cluster as the Root User
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Run an MGR Cluster as the Root User
+
+By default an MGR cluster managed by Alauda Application Services starts its internal MySQL processes as a non-root, unprivileged user. Some integrations — most commonly legacy storage backends that only expose a root-owned mount — require the database process to run as `root`. This page shows how to opt into root execution and the security trade-offs you accept by doing so.
+
+## Background
+
+The operator sets `runAsNonRoot: true` on the `mysql`, `mysql-router`, exporter, and slow-SQL containers, and runs them under a dedicated non-zero UID. When a workload genuinely cannot function without root (for example, a storage driver that mandates a root-owned path), set `spec.mgr.runAsRoot: true` on the `Mysql` CR. The operator then drops the `runAsNonRoot` restriction and starts the containers as UID 0.
+
+:::warning
+Running MySQL as `root` is **not recommended**. It removes a defense-in-depth layer and introduces real risk:
+
+- **Privilege escalation** — a container-escape or local privilege-escalation bug now yields root on the host and, potentially, the cluster.
+- **Excessive privilege** — violates least-privilege and widens the attack surface.
+- **Weaker isolation** — the Linux root account and the MySQL super-user are conflated, eroding account separation.
+- **Auditing and compliance** — operations are harder to attribute per account, and the configuration may breach database account-management policies.
+
+Enable it only when a hard dependency leaves no alternative, and compensate with tighter network policy, PodSecurity exceptions scoped to the single namespace, and close monitoring.
+:::
+
+## Prerequisites
+
+- An MGR cluster on Alauda Application Services v4.x (the `runAsRoot` field has existed since platform v3.14).
+- Permission to edit the `Mysql` CR (or to create it through the Data Services UI in YAML mode).
+
+## Procedure
+
+1. In the Data Services creation form, configure the cluster as usual, then switch to **YAML** mode and set `spec.mgr.runAsRoot` to `true`:
+
+    ```yaml
+    apiVersion: mysql.middleware.alauda.io/v1
+    kind: Mysql
+    metadata:
+      name: <cluster>
+      namespace: <namespace>
+    spec:
+      mgr:
+        runAsRoot: true
+    ```
+
+    For an existing cluster, edit the CR in place and let the operator roll the StatefulSet:
+
+    ```bash
+    kubectl patch mysql <cluster> -n <namespace> --type merge -p '{"spec":{"mgr":{"runAsRoot":true}}}'
+    kubectl rollout status -n <namespace> statefulset/<cluster>-mgr
+    ```
+
+2. On OpenShift / OCP, root execution additionally requires a Security Context Constraint that permits it. Bind an SCC such as `anyuid` (or a custom SCC with `runAsUser: RunAsAny`) to the cluster's ServiceAccount in the target namespace; otherwise the pods stay `Pending` with an SCC admission error. On ACP (PodSecurity Admission) the equivalent is ensuring the namespace is not under a `restricted` PodSecurity level that would block UID 0.
+
+## Verify
+
+Exec into the `mysql` container and confirm the shell runs as root:
+
+```bash
+kubectl exec -it <cluster>-mgr-0 -n <namespace> -c mysql -- id
+```
+
+A successful result reports `uid=0(root) gid=0(root)`, and an interactive shell shows the `#` root prompt:
+
+```bash
+kubectl exec -it <cluster>-mgr-0 -n <namespace> -c mysql -- bash
+```
+
+If the field is not taking effect, confirm the StatefulSet pod template carries `securityContext.runAsNonRoot: false`:
+
+```bash
+kubectl get statefulset <cluster>-mgr -n <namespace> \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="mysql")].securityContext}'
+```
