@@ -1,0 +1,327 @@
+---
+weight: 80
+i18n:
+  title:
+    en: MySQL-MGR Operations Handbook
+    zh: MySQL-MGR 运维手册
+title: MySQL-MGR Operations Handbook
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# MySQL-MGR Operations Handbook
+
+This handbook collects the architecture, group-replication concepts, and day-to-day operational knowledge needed to keep an MGR cluster healthy on Alauda Application Services for MySQL. It is aimed at operators who already understand vanilla MySQL and need to know how the operator wires Group Replication on top of Kubernetes, and how to intervene when the operator's automatic recovery is not enough.
+
+## Background
+
+### Component topology
+
+Each `Mysql` CR running in MGR mode creates the following workloads in its namespace:
+
+- A **StatefulSet** named `<cluster>` running the MySQL servers. Each Pod has four containers by default:
+  - `mysql` — the MySQL server itself.
+  - `mysql-agent` — the operator-side agent that drives MySQL Shell and reconciles the group.
+  - `exporter` — Prometheus metrics exporter.
+  - `slowsql` — slow-query log shipper.
+- A **Deployment** named `<cluster>-router` running a single `router` container per replica.
+- A set of **PersistentVolumeClaims** (one per StatefulSet ordinal) backing MySQL's data directory; PV lifecycle is managed by the CSI driver in use.
+- **Secrets** holding the root and replication-channel passwords, plus **ConfigMaps** holding rendered `my.cnf` fragments.
+
+The StatefulSet uses anti-affinity so that MGR replicas land on different nodes; `topologyKey` and node-selection knobs on the `Mysql` CR refine this further.
+
+### Group Replication primer
+
+MySQL Group Replication is built on the XCom (Paxos-based) protocol and guarantees state-machine consistency across the replicas. The properties the operator relies on:
+
+- **Closed group** — only group members may send messages to the group; outside traffic is dropped.
+- **Total order** — all XCom messages are globally ordered (totally in single-primary, partially in multi-primary). This is the basis for state-machine equivalence.
+- **Safe delivery** — a message must reach all non-faulty members and be acknowledged by a majority before the upper layer is notified.
+- **View synchrony** — every member delivers messages in the same order before any membership change is committed; a view change is a synchronization point.
+
+For Group Replication to work at all, the workload itself must satisfy:
+
+- All replicated tables use the InnoDB transactional storage engine.
+- Every replicated table has an explicit primary key (or an equivalent NOT NULL unique key).
+- All members can reach each other on the group-communication port in both directions, with reasonably stable latency.
+
+### Member states
+
+| State | Meaning | Counted toward the group |
+| --- | --- | --- |
+| `ONLINE` | Fully functional member — can serve clients. | Yes |
+| `RECOVERING` | Joining the group and replaying state from a donor. | No |
+| `OFFLINE` | Plugin loaded but not part of any group. | No |
+| `ERROR` | Recovery or applier hit an error. | No |
+| `UNREACHABLE` | Local failure detector suspects the member is crashed or partitioned. | No |
+
+### Views and view ID
+
+Group Replication manages membership as a sequence of **views**. A view is the set of members during a period without membership change; any join or leave produces a new view with a new `View ID`. The View ID is `<timestamp-prefix>:<sequence>`:
+
+- The timestamp prefix is fixed at the moment the group is initialized and never changes for the lifetime of that group.
+- The sequence increments on every join or leave.
+
+Inspect from any member:
+
+```sql
+SELECT * FROM performance_schema.replication_group_member_stats\G
+```
+
+### Join flow
+
+When a new member requests to join:
+
+1. The candidate connects to one of the seed members listed in `group_replication_group_seeds` (set by the operator). The seed checks `group_replication_ip_whitelist`; the operator leaves this open by default.
+2. The seed broadcasts a view-change message to every member, including the joiner.
+3. Each member runs the view switch, broadcasts its state, and merges every other member's state into its local membership table.
+4. View change only proves the joiner can receive Paxos messages — it is not yet ready to serve. The joiner enters `RECOVERING` and runs the recovery flow before transitioning to `ONLINE`.
+
+### Recovery flow (donor → joiner)
+
+Distributed recovery has two phases:
+
+- **Learn** — the joiner picks one online member as the *donor*. A standard async-replication channel ships the donor's binary log to the joiner, up to the binlog position that corresponds to the view in which the joiner appears. While this is going on, the joiner *also* caches every Group-Replication transaction it sees on the wire.
+- **Catch-up** — the joiner replays the queued transactions. When the queue drains to zero, it is marked `ONLINE`.
+
+### Leaving the group
+
+Voluntary and involuntary leaves behave differently — this matters for quorum.
+
+- **Voluntary leave** (`STOP GROUP_REPLICATION` from inside the server): triggers a view reconfiguration; the leaver no longer counts toward the group size, and quorum is not reduced. A 5-node group that loses one voluntary leaver becomes a 4-node group.
+- **Involuntary leave** (node crash, network partition, kubelet eviction): the failure detector flags the member `UNREACHABLE`, but the group size does *not* change — the lost member still counts against the quorum threshold. A 5-node group that loses three nodes involuntarily has only two members but still needs three votes for quorum, so writes block until quorum is restored manually.
+
+### MGR limits to be aware of
+
+- **Maximum members per group**: 9. Additional join requests are rejected by the plugin.
+- **InnoDB only**: transactions in non-InnoDB tables are not replicated through GR. The operator's parameter template does not currently block MyISAM at server level, so user-created MyISAM tables can break recovery — see the MyISAM repair runbook.
+- **Explicit primary keys**: required for conflict detection and for efficient relay-log replay. Implicit InnoDB row IDs are not sufficient.
+- **Isolation level**: prefer `READ COMMITTED`. `SERIALIZABLE` is unsupported.
+- **Foreign keys with cascading**: avoid in multi-primary mode. If you cannot remove them, enable `group_replication_enforce_update_everywhere_check` so the plugin rejects writes that would cause silent conflicts.
+
+## Managing the group with MySQL Shell
+
+When the MySQL servers themselves are healthy but Group Replication is wedged, drive the recovery from `mysql-agent`. The MGR Shell helpers live there with the right credentials and tooling pre-installed.
+
+### Open a shell on a member
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql-agent -- bash
+mysqlsh root@localhost -p"$MYSQL_ROOT_PASSWORD"
+```
+
+The default mode is JavaScript; the `dba` global is the entry point for cluster operations.
+
+### Inspect cluster status
+
+```javascript
+dba.getCluster().status()
+```
+
+Example output:
+
+```json
+{
+  "clusterName": "Cluster",
+  "defaultReplicaSet": {
+    "name": "default",
+    "primary": "mgr-0.mgr:3306",
+    "ssl": "REQUIRED",
+    "status": "OK",
+    "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
+    "topology": {
+      "mgr-0.mgr:3306": { "memberRole": "PRIMARY",   "mode": "R/W", "status": "ONLINE" },
+      "mgr-1.mgr:3306": { "memberRole": "SECONDARY", "mode": "R/O", "status": "ONLINE" },
+      "mgr-2.mgr:3306": { "memberRole": "SECONDARY", "mode": "R/O", "status": "ONLINE" }
+    },
+    "topologyMode": "Single-Primary"
+  }
+}
+```
+
+Watch the `status`, `statusText`, and each member's `status` field.
+
+### Rejoin a member to the group
+
+Run on a member with quorum. Use when an instance fell out of the view but its metadata still references it.
+
+```javascript
+dba.getCluster().rejoinInstance("mgr-2.mgr:3306")
+```
+
+### Add a new (or previously removed) instance
+
+```javascript
+dba.getCluster().addInstance("mgr-2.mgr:3306")
+```
+
+### Remove an instance
+
+Typically used on secondaries.
+
+```javascript
+dba.getCluster().removeInstance("mgr-2.mgr:3306")
+```
+
+### Reboot from complete outage
+
+When every member is offline.
+
+```javascript
+dba.rebootClusterFromCompleteOutage()
+```
+
+### Force quorum from a partition
+
+When involuntary leaves dropped the group below quorum and a subset is still alive. The Shell will read the operator log to identify the member with the most complete GTID set — pick *that* member as the partition holder.
+
+:::warning
+`forceQuorumUsingPartitionOf` can cause data loss if the wrong partition is chosen. Confirm the GTID comparison below before running it.
+:::
+
+```javascript
+dba.getCluster().forceQuorumUsingPartitionOf("mgr-0.mgr:3306")
+```
+
+### Drop metadata
+
+If no combination of the above can rejoin the instances, delete the cluster metadata and recreate it.
+
+```javascript
+dba.dropMetadataSchema()
+```
+
+### Re-create the cluster
+
+```javascript
+dba.createCluster("Cluster")
+```
+
+## Common issues and resolutions
+
+Before intervening, collect the operator log, the `mysql-agent` log on each Pod, and the MySQL error log; the steps below assume you have them.
+
+### 1. Donor node crashed mid-recovery; cluster wedged
+
+**Symptoms.** A rolling restart cycled `mysql-1` while `mysql-2` was already its recovery donor. `mysql-2`'s node then went down; `mysql-1` cannot finish recovery; the surviving members cannot reach quorum and the whole cluster is offline.
+
+**Procedure.**
+
+1. From every reachable member, dump the executed-plus-received GTID set:
+
+   ```sql
+   SELECT IFNULL(
+     GTID_SUBTRACT(
+       CONCAT_WS(',',
+         @@global.GTID_EXECUTED,
+         (SELECT GROUP_CONCAT(received_transaction_set)
+            FROM performance_schema.replication_connection_status
+           WHERE channel_name IN ('group_replication_applier'))
+       ),
+     ''),
+   '') AS gtid_set;
+   ```
+
+2. Compare the sets pairwise with `GTID_SUBSET('<set1>', '<set2>')`. A return of `1` means `set1` ⊆ `set2`; the member that is *not* a subset of any other holds the most complete history. Choose that member.
+
+3. Recover from the chosen member.
+
+   - If every member is offline:
+
+     ```bash
+     kubectl exec -it -n <namespace> <cluster>-0 -c mysql-agent -- bash
+     mysqlsh root@localhost -p"$MYSQL_ROOT_PASSWORD"
+     ```
+
+     ```javascript
+     dba.rebootClusterFromCompleteOutage()
+     c = dba.getCluster()
+     c.status()
+     ```
+
+   - If at least one member is still online but quorum is lost:
+
+     ```javascript
+     c = dba.getCluster()
+     c.forceQuorumUsingPartitionOf("<chosen-cluster>-0.<svc>:3306")
+     c.status()
+     ```
+
+### 2. MGR will not become ready after restart
+
+**Symptoms.** The operator log shows `no quorum` for the survivor. Two Pods are `NotReady`, but the third has not actually left the group (so `rebootClusterFromCompleteOutage` refuses to run).
+
+**Resolution.** Force the still-not-offline Pod offline manually so the operator's reboot path can engage.
+
+```bash
+kubectl exec -it -n <namespace> <cluster>-0 -c mysql -- \
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e 'STOP GROUP_REPLICATION;'
+```
+
+The operator will then run `dba.rebootClusterFromCompleteOutage()` automatically.
+
+### 3. `wait_timeout` change does not take effect
+
+**Symptoms.** `SHOW VARIABLES LIKE 'wait_timeout'` returns the old value even after a parameter-template change and rolling restart.
+
+**Resolution.** MySQL applies one of `wait_timeout` or `interactive_timeout` based on the connection's interactive flag. Set both in the same CR change:
+
+```yaml
+spec:
+  params:
+    mysql:
+      mysqld:
+        wait_timeout: "86400"
+        interactive_timeout: "86400"
+```
+
+### 4. `sysbench prepare` OOM-kills the Pod
+
+**Symptoms.** During `sysbench prepare`, the secondary that is replaying index-creation transactions exceeds its memory limit and is restarted; connections to it break.
+
+**Resolution.** `sysbench prepare` does single-table bulk index writes that are not representative of real workloads. Reduce the relevant memory ceilings:
+
+```yaml
+spec:
+  params:
+    mysql:
+      mysqld:
+        loose-group_replication_message_cache_size: "134217728"   # 128 MiB
+        innodb_online_alter_log_max_size: "33554432"              # 32 MiB
+```
+
+### 5. Router connection cap reached
+
+**Symptoms.** Application errors with `Too many connections` once concurrent load exceeds MySQL's default of 151 or Router's default of 512.
+
+**Resolution.** Raise both:
+
+```yaml
+spec:
+  params:
+    mysql:
+      mysqld:
+        max_connections: "2000"
+    router:
+      DEFAULT:
+        max_total_connections: "2000"
+```
+
+Apply with `kubectl apply -f <cr>.yaml`; the operator rolls the StatefulSet and the Router Deployment.
+
+### 6. Clients fail with `mysql_native_password`
+
+**Symptoms.** Older clients (or driver versions) cannot authenticate because MGR users default to `caching_sha2_password`.
+
+**Resolution.** Create application users with the older plugin instead of changing the cluster default:
+
+```sql
+CREATE USER '<user>'@'<host>' IDENTIFIED WITH mysql_native_password BY '<password>';
+GRANT <privileges> ON <db>.* TO '<user>'@'<host>';
+```
+
+Leave the root and replication users on `caching_sha2_password` — they should not be downgraded.

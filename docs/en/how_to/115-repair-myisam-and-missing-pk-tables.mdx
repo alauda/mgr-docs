@@ -1,0 +1,162 @@
+---
+weight: 115
+i18n:
+  title:
+    en: Repair MyISAM and Missing-Primary-Key Tables on MGR
+    zh: 修复 MGR 集群中误用 MyISAM 引擎或缺失主键的表
+title: Repair MyISAM and Missing-Primary-Key Tables on MGR
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Repair MyISAM and Missing-Primary-Key Tables on MGR
+
+Group Replication only supports `InnoDB` tables with a defined primary key. If a member of the cluster leaves the group and the operator's `addInstance` or `rejoinInstance` operation fails complaining about a MyISAM table or a table without a primary key, this page describes how to bring the cluster back to a healthy state.
+
+## Background
+
+Group Replication requires that every replicated table:
+
+- uses the `InnoDB` storage engine — MGR's certifier and applier modules rely on InnoDB's transactional and row-image semantics; and
+- has an explicit primary key (or a unique non-null key that the server can promote to one), so that row events can be replayed deterministically on other members.
+
+A member that joins the group with a MyISAM table or a table without a primary key fails the join check and is dropped back out of the group.
+
+:::info
+On Alauda Application Services 4.x (audited on v4.3.2, 2026-05-15), the default `Mysql` parameter template ships with:
+
+- `disabled_storage_engines: "MyISAM,MEMORY,CSV,ARCHIVE,BLACKHOLE,FEDERATED"` — `CREATE TABLE ... ENGINE=MyISAM` is rejected by the server.
+- `sql_generate_invisible_primary_key: "ON"` — any table created without a primary key automatically gets an invisible primary key column.
+
+Both failure modes covered on this page are therefore **prevented by default on v4.x**. The procedure below is only relevant if your `Mysql` CR has explicitly overridden one or both of those settings — for example via `spec.params.mysql.mysqld.disabled_storage_engines` or `spec.params.mysql.mysqld.sql_generate_invisible_primary_key` — and the cluster has subsequently accepted a MyISAM table or a table without a primary key.
+:::
+
+## Diagnose
+
+When `mysql-mgr-operator` retries `addInstance` / `rejoinInstance` on a member that has left the group, look at the `mysql` container log on that member.
+
+A MyISAM violation surfaces as:
+
+```text
+[ERROR] [Repl] Plugin group_replication reported: 'Table 'test.myisam_table' uses the MyISAM storage engine which is not supported by Group Replication. Please convert it to an InnoDB table.'
+[ERROR] [Repl] Plugin group_replication reported: 'The member is unable to join the group because it has tables using the MyISAM storage engine.'
+[ERROR] [Repl] Plugin group_replication reported: 'The member will now leave the group.'
+```
+
+A missing primary key surfaces as:
+
+```text
+[ERROR] [Repl] Plugin group_replication reported: 'Table 'test.no_pk_table' does not have a PRIMARY KEY. This is not compatible with Group Replication.'
+[ERROR] [Repl] Plugin group_replication reported: 'The member is unable to join the group because it has tables without a PRIMARY KEY.'
+[ERROR] [Repl] Plugin group_replication reported: 'The member will now leave the group.'
+```
+
+Collect the full list of offending tables before starting the repair — the same error is logged once per table.
+
+## Resolution
+
+Because an MGR cluster in this state cannot accept writes anyway, the simplest fix is to drop the offending (empty) tables on every member. If the tables hold data you wish to preserve, see the alternatives at the end of this page.
+
+### 1. Stop the operator from reconciling
+
+Scale the MGR operator deployment to zero so it does not interfere with the manual session settings below:
+
+```bash
+kubectl scale -n mgr-system deployment mysql-mgr-operator --replicas=0
+kubectl rollout status -n mgr-system deployment mysql-mgr-operator
+```
+
+### 2. Drop the offending tables on every member
+
+For each `mysql` pod (`<cluster>-mgr-0`, `<cluster>-mgr-1`, `<cluster>-mgr-2`), connect to the local server and drop the offending tables. The session disables `super_read_only` and pauses GTID recording so the DROP does not generate a binlog transaction that the other members would also try to apply:
+
+```bash
+kubectl exec -it <cluster>-mgr-N -n <namespace> -c mysql -- \
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD"
+```
+
+```sql
+SET GLOBAL super_read_only = OFF;
+SET GLOBAL gtid_mode = OFF;
+
+DROP TABLE test.myisam_table1, test.myisam_table2;
+
+SET @@GLOBAL.gtid_mode = ON;
+SET GLOBAL super_read_only = ON;
+```
+
+Repeat on every member. Do not skip the `gtid_mode` toggles — without them the DROP records a GTID that the other members would re-apply, defeating the purpose of fixing each member locally.
+
+### 3. Resume the operator
+
+```bash
+kubectl scale -n mgr-system deployment mysql-mgr-operator --replicas=1
+kubectl rollout status -n mgr-system deployment mysql-mgr-operator
+```
+
+### 4. Wait for the cluster to self-heal
+
+The operator's next reconciliation will retry `addInstance` / `rejoinInstance` for the departed members. Verify membership recovers:
+
+```sql
+SELECT MEMBER_HOST, MEMBER_STATE, MEMBER_ROLE
+FROM performance_schema.replication_group_members;
+```
+
+All three rows should be `ONLINE`, with exactly one `PRIMARY` in single-primary mode. Re-check the `mysql` container log to make sure no further offending tables remain.
+
+## Alternatives — preserve the data
+
+If the tables contain rows you need to keep, replace step 2's `DROP TABLE` with one of the following.
+
+### MyISAM tables — convert to InnoDB
+
+For each offending table, run on every member (still inside the `super_read_only=OFF; gtid_mode=OFF` block):
+
+```sql
+ALTER TABLE test.myisam_table ENGINE=InnoDB;
+```
+
+Replace `test.myisam_table` with the schema-qualified table name from the error log.
+
+### Tables without a primary key — add one
+
+Either add an auto-increment surrogate key:
+
+```sql
+ALTER TABLE test.no_pk_table ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY;
+```
+
+Or promote an existing unique, non-null column to the primary key:
+
+```sql
+ALTER TABLE test.no_pk_table ADD PRIMARY KEY (existing_unique_column);
+```
+
+:::warning
+`ALTER TABLE` rewrites the table on disk and runs locally on every member while the cluster is split. Make sure the schemas are identical on every member after you finish — re-run `SHOW CREATE TABLE` on each pod and compare.
+:::
+
+## Prevent recurrence
+
+After recovery, restore the v4 defaults on `spec.params.mysql.mysqld` so future offending DDL is rejected at `CREATE TABLE` time rather than discovered at re-join time:
+
+```yaml
+spec:
+  params:
+    mysql:
+      mysqld:
+        disabled_storage_engines: "MyISAM,MEMORY,CSV,ARCHIVE,BLACKHOLE,FEDERATED"
+        sql_generate_invisible_primary_key: "ON"
+```
+
+Apply the CR, let the operator roll the StatefulSet, then confirm the variables took effect:
+
+```sql
+SHOW GLOBAL VARIABLES WHERE Variable_name IN
+  ('disabled_storage_engines', 'sql_generate_invisible_primary_key');
+```

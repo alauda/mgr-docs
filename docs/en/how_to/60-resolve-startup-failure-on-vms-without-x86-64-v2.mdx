@@ -1,0 +1,99 @@
+---
+weight: 60
+i18n:
+  title:
+    en: Resolve Startup Failure on VMs Without x86-64-v2 Support
+    zh: 解决虚拟机指令集过旧（缺少 x86-64-v2）导致的启动失败
+title: Resolve Startup Failure on VMs Without x86-64-v2 Support
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Resolve Startup Failure on VMs Without x86-64-v2 Support
+
+When a MySQL-MGR cluster is deployed on virtual machines whose guest CPU only exposes the legacy x86-64-v1 instruction set, the MGR server containers (and any other component built on a `stream9` base image, including the MGR Operator and ProxySQL) refuse to start with the error:
+
+```
+Fatal glibc error: CPU does not support x86-64-v2
+```
+
+This page explains why, and how to fix it by lifting the guest CPU baseline to at least x86-64-v2.
+
+## Background
+
+The container images shipped with the MGR operator are built on a CentOS Stream 9 base, which (following Red Hat's upstream decision) raised its minimum supported instruction set from x86-64-v1 to x86-64-v2. Any guest that does not advertise x86-64-v2 to the workload will refuse to load glibc on these images.
+
+### Instruction-set generations
+
+| Microarchitecture level | Released | Notable additions | Earliest Intel cores |
+| --- | --- | --- | --- |
+| x86-64-v1 | 2003 | Baseline 64-bit | Pre-Nehalem Xeon |
+| x86-64-v2 | 2005 | SSE3, SSSE3, SSE4.1/4.2, POPCNT | Sandy Bridge / Ivy Bridge |
+| x86-64-v3 | 2011 | AVX, AVX2, BMI1/2, FMA | Haswell / Broadwell |
+| x86-64-v4 | 2014 | AVX-512 | Skylake-X and later |
+
+In practice any physical CPU released after roughly 2011 supports x86-64-v2; the failure almost always indicates that a hypervisor is *masking* a newer CPU down to an older feature set for vMotion / live-migration compatibility.
+
+### Why this is intentional
+
+- x86-64-v1 is more than twenty years old and is no longer present on any current hardware.
+- The MGR images previously tolerated x86-64-v1, but the upstream base image dropped support as part of a security fix, and the project follows that choice.
+- Red Hat publishes the same guidance for RHEL 9 guests (see [solution 6833751](https://access.redhat.com/solutions/6833751)).
+
+:::warning
+Do not attempt to work around this by rebuilding the MGR images on an older base — you will lose the security fixes that motivated the baseline change in the first place.
+:::
+
+## Resolution
+
+The fix is to raise the guest CPU baseline so it advertises x86-64-v2 (or higher). The exact procedure depends on the hypervisor; the most common case in the field is VMware vSphere with Enhanced vMotion Compatibility (EVC).
+
+### VMware vSphere: set EVC to Sandy Bridge or newer
+
+Enhanced vMotion Compatibility (EVC) forces every host in a cluster — or every VM, when set per-VM — to advertise a uniform CPU feature set so live-migration works across mixed hardware. EVC is configured either at the cluster level or per VM. The per-VM setting is preferred when you only need to lift the baseline for the database VMs.
+
+1. In the vSphere Client, navigate to the VM hosting the MGR / MGR-Operator workload.
+2. Power off the VM (EVC mode changes require a powered-off VM).
+3. Open **Configure → VMware EVC** and click **Edit**.
+4. Select **Enable EVC for Intel hosts**, then choose an Intel generation **no earlier than Sandy Bridge**. Any of the following is sufficient:
+
+   | EVC mode | Instruction-set level exposed to guest |
+   | --- | --- |
+   | Nehalem / Westmere | x86-64-v1 (insufficient) |
+   | **Sandy Bridge / Ivy Bridge** | **x86-64-v2 (minimum required)** |
+   | Haswell / Broadwell / Skylake or later | x86-64-v3 or higher |
+
+5. Power the VM back on. The MGR / Operator Pod scheduled on this node should now start cleanly.
+
+For AMD hosts the equivalent EVC tiers are AMD Opteron Gen. 3 ("Greyhound") and newer; pick a generation that maps to x86-64-v2 at minimum.
+
+### Other hypervisors
+
+- **KVM / QEMU / libvirt**: in the domain XML, change `<cpu mode="custom">` to `host-model` or `host-passthrough`, or pick a named model such as `SandyBridge` or newer. After editing, shut the guest down and start it again — a reboot from inside the guest is not enough.
+- **Hyper-V**: disable processor compatibility mode on the VM (`Set-VMProcessor -CompatibilityForMigrationEnabled $false`), or migrate the VM onto a host whose baseline already exposes x86-64-v2.
+- **Other platforms**: consult the [Red Hat KB](https://access.redhat.com/solutions/6833751) — the same guest-side symptom and the same baseline requirement apply.
+
+### Verify from inside the guest
+
+After powering the VM back on, you can confirm the guest now sees the required features:
+
+```bash
+/lib64/ld-linux-x86-64.so.2 --help | grep -E 'x86-64-v[0-9]'
+```
+
+The line for `x86-64-v2` should be marked `(supported, searched)`. Once it is, restart the affected MGR Pod:
+
+```bash
+kubectl -n <namespace> delete pod <mgr-pod-name>
+```
+
+The Pod will be rescheduled by the operator and initialize successfully.
+
+## References
+
+- [VMware EVC overview](https://www.bdrsuite.com/blog/vmware-evc-mode-overview/)
+- [Red Hat KB on the same symptom for RHEL 9 guests](https://access.redhat.com/solutions/6833751)
