@@ -1,0 +1,94 @@
+---
+weight: 125
+i18n:
+  title:
+    en: Expose an MGR Cluster Through MetalLB
+    zh: 通过 MetalLB 暴露 MGR 集群
+title: Expose an MGR Cluster Through MetalLB
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Expose an MGR Cluster Through MetalLB
+
+On a bare-metal or on-premises cluster where [MetalLB](https://metallb.universe.tf/) provides `LoadBalancer` services, an MGR cluster can be reached through a stable virtual IP instead of node IPs and NodePorts. This page shows how to switch the MySQL Router read-write and read-only services to `LoadBalancer` type and, optionally, how to suppress the NodePorts that `LoadBalancer` services allocate by default.
+
+## Background
+
+The MySQL Router fronts an MGR cluster with two services: a read-write service (routes to the primary) and a read-only service (routes to the secondaries). By default these are `ClusterIP` (in-cluster) or `NodePort` (external). When MetalLB is installed and has an address pool, setting the service type to `LoadBalancer` makes MetalLB assign each service an external IP from the pool.
+
+## Prerequisites
+
+- An MGR cluster on Alauda Application Services v4.x.
+- MetalLB is installed and configured with at least one `IPAddressPool` that has free addresses (the field has been usable since platform v3.16).
+- Permission to edit the `Mysql` CR.
+
+## Procedure
+
+1. Set the router read-write and read-only services to `LoadBalancer` under `spec.mgr.router`:
+
+    ```yaml
+    apiVersion: mysql.middleware.alauda.io/v1
+    kind: Mysql
+    metadata:
+      name: <cluster>
+      namespace: <namespace>
+    spec:
+      mgr:
+        router:
+          svcRW:
+            type: LoadBalancer
+          svcRO:
+            type: LoadBalancer
+    ```
+
+2. (Optional) A `LoadBalancer` service in Kubernetes allocates a NodePort for each port by default. If you do not want those NodePorts opened, set `allocateLoadBalancerNodePorts: false` on each service through `spec.mgr.patches.servicePatches`:
+
+    ```yaml
+    spec:
+      mgr:
+        router:
+          svcRW:
+            type: LoadBalancer
+          svcRO:
+            type: LoadBalancer
+        patches:
+          servicePatches:
+            read-write:
+              spec:
+                allocateLoadBalancerNodePorts: false
+            read-only:
+              spec:
+                allocateLoadBalancerNodePorts: false
+    ```
+
+3. Apply the change and wait for the operator to reconcile the services:
+
+    ```bash
+    kubectl apply -f mysql.yaml
+    ```
+
+:::info
+On OpenShift / OCP the same `LoadBalancer` type works with MetalLB (the supported load balancer for bare-metal OpenShift). If you instead front the database with an OpenShift `Route`, note that Routes are HTTP(S)-oriented and are not suitable for the MySQL wire protocol — use a `LoadBalancer` service (MetalLB) or a NodePort for TCP database traffic.
+:::
+
+## Verify
+
+Confirm MetalLB has assigned external IPs to both router services:
+
+```bash
+kubectl get svc -n <namespace> \
+  -l v1alpha1.mysql.middleware.alauda.io/cluster=<cluster> -o wide | grep LoadBalancer
+```
+
+Each service should show an address in the `EXTERNAL-IP` column. Connect through the read-write external IP:
+
+```bash
+mysql -h <external-ip> -P 3306 -uroot -p
+```
+
+If `EXTERNAL-IP` stays `<pending>`, MetalLB has no free address in its pool or no pool covers the service — check the MetalLB controller logs and `IPAddressPool` resources.

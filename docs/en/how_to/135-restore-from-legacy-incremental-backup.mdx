@@ -1,0 +1,89 @@
+---
+weight: 135
+i18n:
+  title:
+    en: Restore Data from a Legacy Incremental Backup
+    zh: 使用旧版本增量备份恢复数据
+title: Restore Data from a Legacy Incremental Backup
+kind:
+   - Solution
+products:
+  - Alauda Application Services
+productsVersion:
+  - 4.x
+---
+
+# Restore Data from a Legacy Incremental Backup
+
+The MGR backup-and-restore mechanism changed in platform v3.14. An incremental backup taken by a pre-v3.14 cluster cannot be consumed by the current managed restore flow. This page describes how to recover such a legacy incremental backup manually by downloading the backup archive from object storage and replaying its binary logs into a running cluster.
+
+## Background
+
+A legacy incremental backup is stored as a tar archive of MySQL binary logs in the S3/MinIO bucket recorded on the backup resource. Recovery is a manual binlog replay: download and unpack the archive, then feed the binlog files to a target cluster with `mysqlbinlog`, in order, scoped to the business databases you want to recover.
+
+## Prerequisites
+
+- Network access from your workstation to both the MinIO/S3 endpoint that holds the backup and the target MySQL endpoint.
+- The following client tools installed locally:
+  - `mc` — the MinIO client.
+  - The MySQL 8 client package, which includes `mysqlbinlog`.
+  - `tar`.
+  - `kubectl`, with access to the cluster that owns the backup resource.
+
+:::warning
+Replaying binary logs mutates the target database. Recover into a freshly created cluster or a staging instance first, validate the data, and only then cut applications over. Replaying the wrong range or database can corrupt live data.
+:::
+
+## Procedure
+
+### 1. Inspect the backup resource
+
+Read the backup object to find its storage location and credentials reference:
+
+```bash
+kubectl get -n <namespace> mgr-backup <backup-name> -o yaml
+```
+
+Note `spec.storage.s3.endpoint` (the MinIO API address), the bucket, and the object name. The Access Key and Secret Key are in the Secret referenced by the backup's storage configuration.
+
+### 2. Configure MinIO access
+
+Register the MinIO host with `mc`, using the endpoint from the previous step:
+
+```bash
+mc config host add minio <minio-api-endpoint>
+```
+
+Enter the Access Key and Secret Key when prompted (read them from the configured Secret).
+
+### 3. Download and unpack the archive
+
+Using the bucket and object name from step 1 — for example bucket `mgr` and object `mgr-<cluster>-incr-backup-<timestamp>.tar.gz`, addressed as `minio/mgr/mgr-<cluster>-incr-backup-<timestamp>.tar.gz`:
+
+```bash
+mc cp minio/mgr/mgr-<cluster>-incr-backup-<timestamp>.tar.gz ./
+tar -xf ./mgr-<cluster>-incr-backup-<timestamp>.tar.gz
+```
+
+This produces the binary log files (for example `bin.000003`) in the current directory.
+
+### 4. Replay the binary logs
+
+Replay the binlogs in order with `mysqlbinlog`, scoping each run to one business database with `-d`. Pipe the output into the target cluster's primary. Repeat for each database you need to recover:
+
+```bash
+mysqlbinlog --no-defaults -d <database> bin.000003 \
+  | mysql -h <primary-host> -P <port> -u root -p
+```
+
+For a precise recovery point, bound the replay with `--start-position`/`--stop-position` (or `--start-datetime`/`--stop-datetime`), and apply the binlog files in ascending sequence so transactions are replayed in their original order.
+
+## Verify
+
+Connect to the target and confirm the recovered data is present and consistent:
+
+```bash
+mysql -h <primary-host> -P <port> -u root -p -e "USE <database>; SHOW TABLES; SELECT COUNT(*) FROM <table>;"
+```
+
+Group Replication propagates the replayed transactions from the primary to the secondaries automatically. If rows are missing, confirm you replayed every binlog file in sequence and that the `-d` filter matched the intended database name.
