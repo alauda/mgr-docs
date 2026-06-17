@@ -85,7 +85,7 @@ kubectl cp <namespace>/<mgr-pod-0>:/var/lib/mysql/<dump-file>.sql ./<dump-file>.
 
    Group Replication propagates the imported transactions to the Secondaries automatically; do not run the import on more than one member.
 
-3. **Recreate application users.** A dump that was prepared with the guidance in [How to Import and Export MySQL Data](../../solutions/How_to_Import_and_Export_MySQL_Data.md) does not contain accounts from the source `mysql` system schema. Create application accounts explicitly on the Primary:
+3. **Recreate application users.** A dump that was prepared with the guidance in the *How to Import and Export MySQL Data* knowledge-base article does not contain accounts from the source `mysql` system schema. Create application accounts explicitly on the Primary:
 
    ```sql
    CREATE USER 'app'@'%' IDENTIFIED BY '<strong-password>';
