@@ -44,18 +44,18 @@ Like other Alauda Container Platform Data Services plugins, MySQL-MGR depends on
 | Order | Plugin | Role | Minimum Version |
 |-------|--------|------|-----------------|
 | 1 | **Alauda Container Platform Data Services Essentials** (also referred to as Application Services Core) | Foundational platform component that the Data Services plugins and operators build on. | **v4.4.0 or higher** |
-| 2 | **Alauda Container Platform Data Services RDS Framework** | Base operator framework that the MySQL operator extends. | **v4.3.x** |
+| 2 | **Alauda Container Platform Data Services RDS Framework** (`rds-operator`) | The rds-operator multi-database base operator that the MySQL operator extends. | **v4.3.0 or higher** |
 | 3 | **Alauda Database Service for MySQL** | The MySQL-MGR operator and its instances. | **v4.4.0 or higher** |
 | 4 | **Query Analytics Operator** (`query-analytics-operator`) | Optional companion operator that powers slow query logging and query analysis. Only required if query analytics features are used. | **v4.4.0 or higher** |
 
 :::warning Upgrade the base plugins first
-Always upgrade the **Data Services RDS Framework** to **v4.3.x** **before** upgrading the MySQL operator or rolling instances. Upgrading the MySQL operator against an older RDS Framework can leave instances in an inconsistent or unmanaged state. The OperatorHub **Upgrade** prompt lists the component and plugin version changes for the target release; see the [Install guide](./installation) for the plugin installation steps.
+Always upgrade the **Data Services RDS Framework** (`rds-operator`) to **v4.3.0 or higher** **before** upgrading the MySQL operator or rolling instances. Upgrading the MySQL operator against an older rds-operator can leave instances in an inconsistent or unmanaged state. The OperatorHub **Upgrade** prompt lists the component and plugin version changes for the target release; see the [Install guide](./installation) for the plugin installation steps.
 :::
 
 ### Important Notes
 
 - **Data Services Essentials version**: Upgrading the MySQL operator requires **Alauda Container Platform Data Services Essentials (Application Services Core) v4.4.0 or higher**. Upgrade this foundational platform component to a compatible version **before** upgrading the operator.
-- **Upgrade the base plugins first**: The MySQL operator depends on the Alauda Container Platform Data Services RDS Framework. Upgrade the RDS Framework to **v4.3.x** **before** upgrading the operator. See [Plugin Dependencies](#plugin-dependencies).
+- **Upgrade the base plugins first**: The MySQL operator depends on the Alauda Container Platform Data Services RDS Framework (`rds-operator`). Upgrade the rds-operator to **v4.3.0 or higher** **before** upgrading the operator. See [Plugin Dependencies](#plugin-dependencies).
 - **Query Analytics operator version**: If you use query analytics features (slow query logging and query analysis), upgrade the **Query Analytics Operator (`query-analytics-operator`) to v4.4.0 or higher**. This operator is optional — MySQL-MGR instances function normally without it.
 - **MySQL-PXC removal is irreversible**: Starting from MySQL Operator v4.3.0, MySQL-PXC is removed. PXC instances become **unmanaged** immediately after the operator upgrade and cannot be re-managed. Migrate any PXC instances to MySQL-MGR **before** upgrading to v4.3.0 or later — see the [MySQL-PXC Pre-Upgrade Checklist](#mysql-pxc-pre-upgrade-checklist).
 - **Operator rollback is not supported**: Once upgraded, the MySQL operator **cannot be rolled back** to a previous version. Take a verified full backup of every instance before starting the upgrade. See [Rollback considerations](#rollback-considerations).
