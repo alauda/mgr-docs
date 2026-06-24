@@ -20,7 +20,38 @@ Alauda Database Service for MySQL-MGR will execute upgrades based on the configu
 - **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
 - **Manual** : Requires manual approval before initiating the upgrade process.
 
-## MySQL-PXC Pre-Upgrade Checklist
+## Prerequisites
+
+Before initiating an upgrade, ensure the following:
+
+1. **Plugin dependencies are upgraded first**: Alauda Database Service for MySQL builds on foundational Alauda platform and Data Services plugins. Upgrade them to a compatible version **before** upgrading the MySQL operator or rolling instances.
+2. **Version compatibility**: Your current version falls within a supported upgrade path. Review the [Release Notes](./release_notes) for the target version's new features and known issues, and the OperatorHub **Upgrade** prompt for the component and plugin version changes that the upgrade applies.
+3. **Component health**: All MySQL-MGR instances are in a `Running` (Ready) state before starting the upgrade.
+4. **Resource availability**: The cluster has sufficient CPU, memory, and storage headroom to perform the rolling upgrade.
+5. **PXC migration (if applicable)**: If the platform has any MySQL-PXC instances, complete the [MySQL-PXC Pre-Upgrade Checklist](#mysql-pxc-pre-upgrade-checklist) before upgrading to MySQL Operator v4.3.0 or later.
+
+### Plugin Dependencies \{#plugin-dependencies}
+
+Like other Alauda Container Platform Data Services plugins, MySQL-MGR depends on the shared Data Services base plugins. Upgrade them in the following order:
+
+| Order | Plugin | Role | Minimum Version |
+|-------|--------|------|-----------------|
+| 1 | **Alauda Container Platform Data Services Essentials** (also referred to as Application Services Core) | Foundational platform component that the Data Services plugins and operators build on. | **v4.4.0 or higher** |
+| 2 | **Alauda Container Platform Data Services RDS Framework** | Base operator framework that the MySQL operator extends. | **v4.3.x** |
+| 3 | **Alauda Database Service for MySQL** | The MySQL-MGR operator and its instances. | Target upgrade version |
+
+:::warning Upgrade the base plugins first
+Always upgrade the **Data Services RDS Framework** to **v4.3.x** **before** upgrading the MySQL operator or rolling instances. Upgrading the MySQL operator against an older RDS Framework can leave instances in an inconsistent or unmanaged state. The OperatorHub **Upgrade** prompt lists the component and plugin version changes for the target release; see the [Install guide](./installation) for the plugin installation steps.
+:::
+
+### Important Notes
+
+- **Data Services Essentials version**: Upgrading the MySQL operator requires **Alauda Container Platform Data Services Essentials (Application Services Core) v4.4.0 or higher**. Upgrade this foundational platform component to a compatible version **before** upgrading the operator.
+- **Upgrade the base plugins first**: The MySQL operator depends on the Alauda Container Platform Data Services RDS Framework. Upgrade the RDS Framework to **v4.3.x** **before** upgrading the operator. See [Plugin Dependencies](#plugin-dependencies).
+- **MySQL-PXC removal is irreversible**: Starting from MySQL Operator v4.3.0, MySQL-PXC is removed. PXC instances become **unmanaged** immediately after the operator upgrade and cannot be re-managed. Migrate any PXC instances to MySQL-MGR **before** upgrading to v4.3.0 or later — see the [MySQL-PXC Pre-Upgrade Checklist](#mysql-pxc-pre-upgrade-checklist).
+- **Operator rollback is not supported**: Once upgraded, the MySQL operator **cannot be rolled back** to a previous version. Take a verified full backup of every instance before starting the upgrade. See [Rollback considerations](#rollback-considerations).
+
+## MySQL-PXC Pre-Upgrade Checklist \{#mysql-pxc-pre-upgrade-checklist}
 
 If your platform has **MySQL-PXC** instances, complete the following **before upgrading to MySQL Operator v4.3.0 or later**:
 
@@ -175,7 +206,7 @@ If migration cannot be completed within the maintenance window:
 Deleting a PXC custom resource will delete all associated pods and data. Always verify data integrity on the target MGR instance before decommissioning the source PXC instance.
 :::
 
-### Rollback considerations
+### Rollback considerations \{#rollback-considerations}
 
 The MySQL operator **cannot be rolled back** to a previous version after upgrade. If a critical issue occurs:
 
