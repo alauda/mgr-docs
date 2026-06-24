@@ -38,10 +38,10 @@ Like other Alauda Container Platform Data Services plugins, MySQL-MGR depends on
 
 | Order | Plugin | Role | Minimum Version |
 |-------|--------|------|-----------------|
-| 1 | **Alauda Container Platform Data Services Essentials** (also referred to as Application Services Core) | Foundational platform component that the Data Services plugins and operators build on. | **v4.4.0 or higher** |
-| 2 | **Alauda Container Platform Data Services RDS Framework** (`rds-operator`) | The rds-operator multi-database base operator that the MySQL operator extends. | **v4.3.0 or higher** |
-| 3 | **Alauda Database Service for MySQL** | The MySQL-MGR operator and its instances. | **v4.4.0 or higher** |
-| 4 | **Query Analytics Operator** (`query-analytics-operator`) | Optional companion operator that powers slow query logging and query analysis. Only required if query analytics features are used. | **v4.4.0 or higher** |
+| 1 | **Alauda Container Platform Data Services Essentials** (also referred to as Application Services Core) | Foundational platform component that the Data Services plugins and operators build on. | **v4.4.0** |
+| 2 | **Alauda Container Platform Data Services RDS Framework** (`rds-operator`) | The rds-operator multi-database base operator that the MySQL operator extends. | **v4.3.0** |
+| 3 | **Alauda Database Service for MySQL** | The MySQL-MGR operator and its instances. | **v4.4.0** |
+| 4 | **Query Analytics Operator** (`query-analytics-operator`) | Optional companion operator that powers slow query logging and query analysis. Only required if query analytics features are used. | **v4.4.0** |
 
 :::warning Upgrade the base plugins first
 Always upgrade the **Data Services RDS Framework** (`rds-operator`) to **v4.3.0 or higher** **before** upgrading the MySQL operator or rolling instances. Upgrading the MySQL operator against an older rds-operator can leave instances in an inconsistent or unmanaged state. The OperatorHub **Upgrade** prompt lists the component and plugin version changes for the target release; see the [Install guide](./installation) for the plugin installation steps.
