@@ -7,7 +7,9 @@ sourceSHA: bad20dc1bccc211b5099b8eae64137f02edafcac310c7a753780773b0f75da9a
 title: Upgrade
 ---
 
-# Upgrade
+# Upgrade to v4.4.0
+
+This page describes how to upgrade Alauda Database Service for MySQL (MySQL-MGR) to **v4.4.0**, including the plugin dependencies and prerequisites specific to this release. For patch-version (z-stream) upgrades within a minor version, see [Patch Version Upgrade](./how_to/30-upgrade).
 
 :::warning
 PXC Removal in Alauda Database Service for MySQL v4.3.0
@@ -22,17 +24,17 @@ Alauda Database Service for MySQL-MGR will execute upgrades based on the configu
 
 ## Prerequisites
 
-Before initiating an upgrade, ensure the following:
+Before initiating the upgrade to v4.4.0, ensure the following:
 
-1. **Plugin dependencies are upgraded first**: Alauda Database Service for MySQL builds on foundational Alauda platform and Data Services plugins. Upgrade them to a compatible version **before** upgrading the MySQL operator or rolling instances.
-2. **Version compatibility**: Your current version falls within a supported upgrade path. Review the [Release Notes](./release_notes) for the target version's new features and known issues, and the OperatorHub **Upgrade** prompt for the component and plugin version changes that the upgrade applies.
+1. **Plugin dependencies are upgraded first**: Alauda Database Service for MySQL builds on foundational Alauda platform and Data Services plugins. Upgrade them to a v4.4.0-compatible version **before** upgrading the MySQL operator or rolling instances.
+2. **Version compatibility**: Your current version falls within a supported upgrade path to v4.4.0. Review the [Release Notes](./release_notes) for v4.4.0's new features and known issues, and the OperatorHub **Upgrade** prompt for the component and plugin version changes that the upgrade applies.
 3. **Component health**: All MySQL-MGR instances are in a `Running` (Ready) state before starting the upgrade.
 4. **Resource availability**: The cluster has sufficient CPU, memory, and storage headroom to perform the rolling upgrade.
 5. **PXC migration (if applicable)**: If the platform has any MySQL-PXC instances, complete the [MySQL-PXC Pre-Upgrade Checklist](#mysql-pxc-pre-upgrade-checklist) before upgrading to MySQL Operator v4.3.0 or later.
 
 ### Plugin Dependencies \{#plugin-dependencies}
 
-Like other Alauda Container Platform Data Services plugins, MySQL-MGR depends on the shared Data Services base plugins. Upgrade them in the following order:
+Like other Alauda Container Platform Data Services plugins, MySQL-MGR depends on the shared Data Services base plugins. For the v4.4.0 upgrade, upgrade them to the following minimum versions, in order:
 
 | Order | Plugin | Role | Minimum Version |
 |-------|--------|------|-----------------|
