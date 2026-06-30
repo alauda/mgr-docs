@@ -15,5 +15,7 @@ releaseNotes:
   queryTemplates:
     mw-mgr-v4.3.2-fixed: |
       filter = 16502 AND status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND fixVersion in versionMatch("MGR-v4.3.*") AND ReleaseNotesStatus = Publish
+    mw-mgr-v4.3.4-fixed: |
+      filter = 16502 AND status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND fixVersion in versionMatch("MGR-v4.3.4") AND ReleaseNotesStatus = Publish
     mw-mgr-v4.3-known: |
       filter = 18959 AND project = MIDDLEWARE AND Feature = "MiddleWare - MySQL-MGR" AND (affectedVersion in versionMatch("MGR-v4.3.*") OR ACPAffectVersions in versionMatch("v4.3.*")) AND status not in (Closed, Done, Resolved, 已验证) AND (labels not in (非产品问题, 非当前版本功能, 安全问题) OR labels is EMPTY) AND ReleaseNotesStatus = Publish
