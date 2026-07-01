@@ -12,6 +12,15 @@ title: Patch Version Upgrade
 
 With the release of vulnerability fixes or new features, Patch version upgrades can occur for the middleware. During patch version upgrades, rolling updates will be triggered. It is recommended to choose an appropriate time window for the upgrade. When a Patch version is available for upgrade, it is advised to upgrade as soon as possible to apply the latest fixes to the components.
 
+:::info Latest 4.3 patch — v4.3.4 (recommended)
+Alauda Database Service for MySQL **v4.3.4** is the current 4.3-line patch and is recommended for all v4.3.x users:
+
+- **Backup reliability**: full logical backup (mysqlsh) no longer fails on instances that contain partitioned tables.
+- **Security hardening**: all component images were rebuilt, resolving a Critical and many High-severity vulnerabilities across openssl, the Go toolchain, and base-OS packages; the images re-scan clean (0 Critical / 0 High).
+
+For the full change list, see the [Release Notes](../release_notes). Security advisory: [ASA-2026:00244](https://cloud.alauda.io/errata/ASA-2026:00244); bugfix advisory: [ABA-2026:00243](https://cloud.alauda.io/errata/ABA-2026:00243). Apply it using the patch upgrade procedure below.
+:::
+
 ## Setting Up Patch Version Upgrade Strategy
 
 ### Procedure
