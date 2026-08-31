@@ -6,6 +6,39 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
+## v4.4.1
+
+This is a patch release for the 4.4 line. It contains bug fixes and updated base images; there are no new features.
+
+### Fixed Issues
+
+#### Cross-Cluster Disaster Recovery
+
+- Fixed an issue where a MySQL cluster with cross-cluster replication over a host port could fail to finish forming, because the address a member advertised to its peer cluster was also used as the Group Replication local address.
+- Fixes for cross-cluster disaster recovery address handling are now included in released builds. Previously these fixes existed only on the development branch, so no released version of the operator carried them.
+- Fixed an issue where a failure while joining a replica cluster to a ClusterSet was neither reported nor retried with backoff, leaving the replica cluster in a half-initialized state.
+- Fixed an issue where IPv6 addresses were parsed and assembled incorrectly on the cross-cluster replication path, so an IPv6 ClusterSet seed address could not be reached.
+- Fixed an issue where creating a replica cluster timed out after 30 seconds, which interrupted the initial data clone on any cluster holding a non-trivial amount of data.
+- Cross-cluster replication over a host port now verifies that Group Replication uses the MySQL communication stack, and reports a clear error instead of hanging when it does not.
+- Fixed an issue where the operator could not tell an unreachable ClusterSet apart from a cluster that is not part of a ClusterSet, because the status query returned an empty result instead of an error when every member failed.
+
+#### Storage
+
+- Fixed an issue where MySQL instances failed to start on storage classes whose volume root directory is not writable by the MySQL user, such as Ceph RBD and NFS CSI. The pod security context now sets `fsGroup` so that data directory ownership is applied when the volume is mounted.
+
+#### Backup
+
+- Fixed an issue where a full logical backup (`mysqlsh`) could fail on MySQL instances containing partitioned tables.
+
+### Security Fixes
+
+- The MySQL server, router, and client images were rebuilt on an updated AlmaLinux 10 base image, upgrading `openssl-libs` and the `bind-*` packages to versions that resolve the reported vulnerabilities.
+- The mysqld-exporter image was rebuilt on an updated Alpine base image, upgrading the OpenSSL libraries (`libcrypto3` / `libssl3`) to versions that resolve the reported vulnerabilities.
+
+### Known Issues
+
+{/* release-notes-for-bugs?template=mw-mgr-v4.4-known&project=Middleware */}
+
 ## v4.4.0
 
 ### New and Optimized Features
