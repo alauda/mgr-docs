@@ -6,6 +6,73 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
+## v4.4.2
+
+This is a patch release for the 4.4 line. It contains an important instance-creation fix, other bug fixes, a product
+name change, and updated base images; there are no new features.
+
+### Product Name Change
+
+**Alauda Database for MySQL** is now named **Alauda Data Services Relational Database E1**.
+
+This is a display-name change only. The plugin package, its APIs and resource types, image names, configuration
+parameters, metric names, and log formats are unchanged, and no action is required when upgrading. Existing instances
+are unaffected.
+
+The companion slow-query plugin has likewise been renamed to **Alauda Data Services Query Analytics**.
+
+### Fixed Issues
+
+#### Instance Creation
+
+- Fixed an issue where creating a MySQL instance failed with `ImagePullBackOff` on the agent sidecar, even though the
+  operator itself installed successfully. The release pipeline recorded an agent image tag that was never mirrored into
+  the customer registry, so the image did not exist on the target cluster. **Any instance created on v4.3.3, v4.3.4, or
+  v4.4.1 is affected**; upgrade to v4.4.2 (or v4.3.5 on the 4.3 line) to resolve it. Instances already running are not
+  affected.
+
+#### Instance Lifecycle
+
+- Fixed an issue where recreating a MySQL instance with the same name shortly after deleting it left the new instance
+  permanently not ready. The new instance adopted the previous instance's internal password secret, so it kept the old
+  root credential and Group Replication could never be bootstrapped. The failure surfaced as an unready agent rather
+  than as a credential error.
+- Fixed a crash in persistent volume claim synchronization that could stop an instance from being reconciled.
+
+#### Console
+
+- Corrected the supported MySQL version shown on the operator details page, which stated MySQL 8.0 while the 4.4 line
+  creates MySQL 8.4 instances. The marketplace listing already showed the correct version.
+
+### Query Analytics
+
+Alauda Data Services Query Analytics is released alongside this version and has no separate release notes.
+
+- Fixed an issue where the slow-query report and metrics pages returned an internal server error for an instance that
+  had not yet reported any slow queries, or whose data had been cleaned up. These requests now return an empty result.
+- Fixed an issue on Alauda Container Platform 4.4 where slow-query requests returned HTTP 404 because the plugin's
+  ingress route was rewritten incorrectly. *(Released in Query Analytics v4.4.1.)*
+
+### Security Fixes
+
+<!-- TODO(v4.4.2): fill from the wave A/B scan results before opening the PR. Cover: AlmaLinux 10 base refresh for the
+     MySQL server/router/client images (openssl-libs, libevent), the mysqld-exporter golang.org/x/crypto update, and
+     the slow-query agent gRPC update. State the resulting HIGH/CRITICAL count. -->
+
+### Known Issues
+
+#### CPU requirement
+
+The 4.4 line requires a processor supporting the **x86-64-v3** microarchitecture level (Intel Haswell, AMD Excavator,
+or later). On older processors the operator and the MySQL server, router, and client containers abort at start with
+`Fatal glibc error: CPU does not support x86-64-v3`.
+
+This requirement comes from the AlmaLinux 10 base image these components are built on and applies to the whole 4.4
+line, from v4.4.0 onward; a patch release cannot lower it. The monitoring exporter is not affected. On hardware that
+does not meet this requirement, use the 4.3 line.
+
+{/* release-notes-for-bugs?template=mw-mgr-v4.4-known&project=Middleware */}
+
 ## v4.4.1
 
 This is a patch release for the 4.4 line. It contains bug fixes and updated base images; there are no new features.
