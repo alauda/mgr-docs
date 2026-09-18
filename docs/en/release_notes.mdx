@@ -6,7 +6,7 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
-## v4.4.2
+## v4.4.3
 
 This is a patch release for the 4.4 line. It contains an important instance-creation fix, other bug fixes, a product
 name change, and updated base images; there are no new features.
@@ -28,7 +28,7 @@ The companion slow-query plugin has likewise been renamed to **Alauda Data Servi
 - Fixed an issue where creating a MySQL instance failed with `ImagePullBackOff` on the agent sidecar, even though the
   operator itself installed successfully. The release pipeline recorded an agent image tag that was never mirrored into
   the customer registry, so the image did not exist on the target cluster. **Any instance created on v4.3.3, v4.3.4, or
-  v4.4.1 is affected**; upgrade to v4.4.2 (or v4.3.5 on the 4.3 line) to resolve it. Instances already running are not
+  v4.4.1 is affected**; upgrade to v4.4.3 (or v4.3.5 on the 4.3 line) to resolve it. Instances already running are not
   affected.
 
 #### Instance Lifecycle
@@ -55,7 +55,7 @@ Alauda Data Services Query Analytics is released alongside this version and has 
 
 ### Security Fixes
 
-<!-- TODO(v4.4.2): fill from the wave A/B scan results before opening the PR. Cover: AlmaLinux 10 base refresh for the
+<!-- TODO(v4.4.3): fill from the wave A/B scan results before opening the PR. Cover: AlmaLinux 10 base refresh for the
      MySQL server/router/client images (openssl-libs, libevent), the mysqld-exporter golang.org/x/crypto update, and
      the slow-query agent gRPC update. State the resulting HIGH/CRITICAL count. -->
 
