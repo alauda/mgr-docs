@@ -17,7 +17,7 @@ This is a **major-version** upgrade. Unlike a patch upgrade, it is **not reversi
 
 Before starting the upgrade, confirm all of the following:
 
-1. **Operator upgraded to v4.4.0 or later.** The 8.0 → 8.4 upgrade capability is provided by the v4.4.0 operator. Upgrade the Alauda Data Services Relational Database E1-MGR operator first; existing 8.0 instances keep running unchanged after the operator upgrade.
+1. **Operator upgraded to v4.4.0 or later.** The 8.0 → 8.4 upgrade capability is provided by the v4.4.0 operator. Upgrade the Alauda Relational Database E1-MGR operator first; existing 8.0 instances keep running unchanged after the operator upgrade.
 2. **A recent backup exists.** Because a major upgrade cannot be rolled back, take a full backup of the instance (or verify a recent automatic backup) before proceeding. If anything goes wrong, you restore to a new instance from this backup.
 3. **The cluster is healthy.** All members must be `ONLINE` and the instance must be in the `Ready` state. Do not start an upgrade on a degraded cluster.
 4. **Each member has at least 2Gi of memory.** The 8.4 server requires more memory than 8.0 at startup. Make sure each member's memory limit is **≥ 2Gi**; increase the instance specification first if needed.
