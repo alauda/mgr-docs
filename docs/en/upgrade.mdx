@@ -11,13 +11,13 @@ title: Upgrade
 # Upgrade
 
 :::warning
-PXC Removal in Alauda Relational Database E1 v4.3.0
-**MySQL-PXC is deprecated** and **removed** starting from Alauda Relational Database E1 v4.3.0. Existing PXC instances will continue running but are no longer managed by the MySQL operator. If you have PXC instances, you **must migrate them to MySQL-MGR before upgrading** to MySQL Operator v4.3.0 or later.
+PXC Removal in Alauda Data Services Relational Database E1 v4.3.0
+**MySQL-PXC is deprecated** and **removed** starting from Alauda Data Services Relational Database E1 v4.3.0. Existing PXC instances will continue running but are no longer managed by the MySQL operator. If you have PXC instances, you **must migrate them to MySQL-MGR before upgrading** to MySQL Operator v4.3.0 or later.
 
 - **Migration Guide**: See [Migrate MySQL-PXC to MySQL-MGR](./how_to/35-migrate-from-pxc) for comprehensive step-by-step instructions covering schema compatibility, character sets, users, and privileges.
 :::
 
-Alauda Relational Database E1-MGR will execute upgrades based on the configured upgrade strategy:
+Alauda Data Services Relational Database E1-MGR will execute upgrades based on the configured upgrade strategy:
 - **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
 - **Manual** : Requires manual approval before initiating the upgrade process.
 
