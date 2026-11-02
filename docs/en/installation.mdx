@@ -9,8 +9,8 @@ title: Install
 
 ## Installing Alauda Container Platform Data Services Essentials
 
-::: tip Optional Installation
-The plugin serves as a foundational component for Alauda Data Services web console. It is not necessary to install it if the **web console** <span/> is not required.
+::: tip Required for v4.4.x
+Alauda Container Platform Data Services Essentials (also referred to as **Application Services Core**) is a foundational platform component required by Alauda Data Services Relational Database E1. For the v4.4.x releases, install or upgrade it to **v4.4.0 or higher** before installing the MySQL operator. It also provides the Alauda Data Services web console. See [Upgrade](./upgrade) for the full plugin dependency list.
 :::
 
 ### Prerequisites
@@ -30,8 +30,8 @@ The plugin serves as a foundational component for Alauda Data Services web conso
 
 ## Installing Alauda Container Platform Data Services RDS Framework
 
-::: tip Optional Installation
-The plugin serves as a foundational component for Alauda Data Services web console. It is not necessary to install it if the web console is not required.
+::: tip Required for v4.4.x
+Alauda Container Platform Data Services RDS Framework (the `rds-operator` multi-database base operator) is the base operator framework that Alauda Data Services Relational Database E1 extends, and is required. For the v4.4.x releases, install or upgrade it to **v4.3.0 or higher** before installing the MySQL operator. See [Upgrade](./upgrade) for the full plugin dependency list.
 :::
 
 ### Prerequisites
@@ -74,7 +74,7 @@ The plugin serves as a foundational component for Alauda Data Services web conso
   <Tab label="Web Console">
     1. Log in to the platform and navigate to the **Administrator** page.
     2. In the left navigation bar, select **Marketplace** -> **OperatorHub** to enter the **OperatorHub** page.
-    3. Find **Alauda Database Service for MySQL**, click **Install** to access the installation page.
+    3. Find **Alauda Data Services Relational Database E1**, click **Install** to access the installation page.
 
     Configuration Parameters:
 
