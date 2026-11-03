@@ -73,8 +73,7 @@ Always check your actual pod names with `kubectl get pod -n <namespace>` before 
 Before performing migration, ensure you have:
 
 - ACP v4.0 or later with MySQL Operator v4.0 or later
-- A healthy MySQL-PXC 5.7 cluster as source
-- GTID mode enabled (`@@gtid_mode = ON`, `@@enforce_gtid_consistency = ON`)
+- A healthy MySQL-PXC 5.7 cluster as source (GTID is **not** required on the source; `@@gtid_mode` may be `OFF`)
 - A new MySQL-MGR 8.0 cluster created as target **before** migration
 - Storage capacity of 2-3x the source database size
 - Network connectivity from your local machine to both clusters
@@ -83,7 +82,6 @@ Before performing migration, ensure you have:
 
 - Application downtime is required during export and import to ensure consistency
 - Recommended maximum database size: 200GB (larger databases may require alternative approaches)
-- GTID must be enabled on the source cluster
 - The target cluster must be created before migration begins
 - Storage performance on target should match or exceed the source
 
@@ -380,18 +378,25 @@ The application must remain stopped (or strictly read-only) from this point unti
          --single-transaction \
          --quick \
          --lock-tables=false \
-         --set-gtid-purged=ON \
+         --set-gtid-purged=OFF \
          --routines \
          --events \
          --triggers \
          --databases ${db} \
-       | grep -v "SET @@GLOBAL.GTID_PURGED" \
        | kubectl exec -i ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
          mysql -uroot -p${TARGET_MYSQL_PASSWORD}
 
      echo "Migrated: ${db}"
    done
    ```
+
+   :::warning Keep set-gtid-purged OFF
+   Do not change this flag to `ON` or `AUTO`:
+   - On a source with `@@gtid_mode = OFF` (common on legacy PXC instances), `--set-gtid-purged=ON` makes `mysqldump` exit immediately with `Error: Server has GTIDs disabled.` and nothing is exported.
+   - On a source with GTID enabled, `ON`/`AUTO` prepend `SET @@SESSION.SQL_LOG_BIN= 0;` to the dump. Applied on the MGR primary, that keeps the whole import out of the binary log, so the other group members never receive the data.
+
+   This migration is a logical dump and restore with no replication channel, so the source's GTID state is not needed on the target.
+   :::
 
 4. **Migrate Users and Privileges**:
    ```bash
@@ -492,9 +497,12 @@ for db in ${DATABASES}; do
 done
 ```
 
+Repeat the table and row count comparison against a **secondary** member (for example `${TARGET_NAME}-1`), not only the primary. If the counts match on the primary but not on a secondary, the import was applied with binary logging disabled; see the warning under Step 4 and re-run the import with `--set-gtid-purged=OFF`.
+
 **Verification Checklist:**
 - [ ] Same number of tables in each database
 - [ ] Same row counts per table
+- [ ] Same table and row counts on a secondary member
 - [ ] Same number of views
 - [ ] All views execute successfully
 - [ ] All stored procedures and functions exist
@@ -641,7 +649,16 @@ Do not delete PXC custom resources until migration is verified and rollback wind
 ERROR 3546 (HY000) at line XX: Cannot update GTID_PURGED with the Group Replication plugin running
 ```
 
-**Solution:** Already handled in migration procedure by filtering with `grep -v "SET @@GLOBAL.GTID_PURGED"`
+**Solution:** The dump was produced with `--set-gtid-purged=ON` or `AUTO`. Re-run the export with `--set-gtid-purged=OFF` as shown in Step 4, which emits no `GTID_PURGED` statement.
+
+### Issue: Server has GTIDs disabled
+
+**Symptoms:**
+```
+mysqldump: Error: Server has GTIDs disabled.
+```
+
+**Solution:** The source has `@@gtid_mode = OFF` and the dump was started with `--set-gtid-purged=ON`. Use `--set-gtid-purged=OFF` as shown in Step 4. Do not enable GTID on the source for this migration; it is not needed.
 
 ### Issue: Character Set Conversion Errors
 
@@ -774,7 +791,7 @@ kubectl logs -n ${TARGET_NAMESPACE} ${TARGET_NAME}-0 -c mysql --tail=100 -f | gr
 | `--single-transaction` | Consistent snapshot using MVCC (InnoDB) |
 | `--quick` | Retrieve rows one at a time (memory efficient) |
 | `--lock-tables=false` | Don't lock tables (relies on single-transaction) |
-| `--set-gtid-purged=ON` | Include GTID information |
+| `--set-gtid-purged=OFF` | Omit `GTID_PURGED` and `SQL_LOG_BIN=0` statements, so the dump works on a GTID-disabled source and the import replicates to every group member |
 | `--routines` | Export stored procedures and functions |
 | `--events` | Export events |
 | `--triggers` | Export triggers |
