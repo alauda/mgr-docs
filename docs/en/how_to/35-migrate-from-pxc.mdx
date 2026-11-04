@@ -74,7 +74,7 @@ Before performing migration, ensure you have:
 
 - ACP v4.0 or later with MySQL Operator v4.0 or later
 - A healthy MySQL-PXC 5.7 cluster as source (GTID is **not** required on the source; `@@gtid_mode` may be `OFF`)
-- A new MySQL-MGR 8.0 cluster created as target **before** migration
+- Permission and capacity to create a new MySQL-MGR 8.0 cluster as the target (Step 3)
 - Storage capacity of 2-3x the source database size
 - Network connectivity from your local machine to both clusters
 
@@ -82,63 +82,58 @@ Before performing migration, ensure you have:
 
 - Application downtime is required during export and import to ensure consistency
 - Recommended maximum database size: 200GB (larger databases may require alternative approaches)
-- The target cluster must be created before migration begins
+- The target cluster must be created before the data export in Step 4
 - Storage performance on target should match or exceed the source
 
 ## Getting Started
 
-### 1. Get MySQL Root Password
+### 1. Set Variables
+
+Every command in this guide uses the variables below. Run them first, and run the rest of the guide in the **same terminal**. If you open a new terminal, set them again.
+
+Find the name and namespace of your PXC source:
 
 ```bash
-# For PXC 5.7 source
-kubectl get secret <source-name> -n <source-namespace> -o jsonpath='{.data.root}' | base64 -d
-
-# For MGR 8.0 target
-kubectl get secret mgr-<target-name>-password -n <target-namespace> -o jsonpath='{.data.root}' | base64 -d
+kubectl get mysql -A
 ```
 
-### 2. Identify Pod Names
+Set the source variables, and choose a name for the target that you will create in Step 3. Replace the example values:
 
 ```bash
-# Check source PXC pods
-kubectl get pod -n <source-namespace> | grep <source-name>
-# Example output: source-pxc-0, source-pxc-1, source-pxc-2
+# PXC 5.7 source
+SOURCE_NAME="source"
+SOURCE_NAMESPACE="your-namespace"
+SOURCE_MYSQL_PASSWORD=$(kubectl get secret ${SOURCE_NAME} -n ${SOURCE_NAMESPACE} -o jsonpath='{.data.root}' | base64 -d)
 
-# Check target MGR pods
-kubectl get pod -n <target-namespace> | grep <target-name>
-# Example output: target-0, target-1, target-2
+# MGR 8.0 target
+TARGET_NAME="mysql-8-target"
+TARGET_NAMESPACE="your-namespace"
 ```
 
-### 3. Verify Cluster Status
+You set `TARGET_MYSQL_PASSWORD` in Step 3, after the target exists, and `DATABASES` in Step 4.
+
+### 2. Verify Source Status
 
 ```bash
-# Check PXC source status
-kubectl get mysql <source-name> -n <source-namespace>
+kubectl get mysql ${SOURCE_NAME} -n ${SOURCE_NAMESPACE}
 # Expected: STATE = ready, PXCSTATE = ready
 
-# Check MGR target status
-kubectl get mysql <target-name> -n <target-namespace>
-# Expected: All 3 members ready, STATUS = Running
+kubectl get pod -n ${SOURCE_NAMESPACE} | grep ${SOURCE_NAME}
+# Example output: source-pxc-0, source-pxc-1, source-pxc-2
 ```
 
-### 4. kubectl Exec Best Practices
+### 3. Run a Command on the Source
 
-**For PXC 5.7 (source):**
+The source takes no container specifier:
+
 ```bash
-# No container specifier needed for PXC
-kubectl exec <source-name>-pxc-0 -n <namespace> -- \
-  mysql -uroot -p<password> -e "SQL_HERE"
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "SELECT 1;"
 ```
 
-**For MGR 8.0 (target):**
-```bash
-# Always use -c mysql for MGR
-kubectl exec <target-name>-0 -n <namespace> -c mysql -- \
-  mysql -uroot -p<password> -e "SQL_HERE"
-```
+The target needs `-c mysql`, as shown in Step 3.
 
 :::tip
-- Always use the parameter order: `kubectl exec -n <namespace> <pod-name> -- <command>`
 - Use `--` (double dash) before the command to separate kubectl options from the command
 - Avoid heredocs (`<<EOF`) with `kubectl exec` - they often fail due to shell quoting issues
 :::
@@ -180,6 +175,8 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 
 #### Fix Schema Issues
 
+These are examples. Replace the database, table and column names with the ones the checks found.
+
 ```bash
 # Fix reserved keyword columns (example)
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
@@ -188,7 +185,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
     ALTER TABLE users CHANGE COLUMN rank user_rank INT;
   "
 
-# Fix ZEROFILL columns
+# Fix ZEROFILL columns (example)
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
   mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     USE db1;
@@ -293,16 +290,14 @@ Create the target MySQL-MGR 8.0 instance **shortly before** the data migration p
 **Using Command Line:**
 
 ```bash
-TARGET_NAME="mysql-8-target"
-NAMESPACE="your-namespace"
 STORAGE_SIZE="500Gi"
 
-cat << EOF | kubectl -n $NAMESPACE apply -f -
+cat << EOF | kubectl -n ${TARGET_NAMESPACE} apply -f -
 apiVersion: middleware.alauda.io/v1
 kind: Mysql
 metadata:
-  name: $TARGET_NAME
-  namespace: $NAMESPACE
+  name: ${TARGET_NAME}
+  namespace: ${TARGET_NAMESPACE}
   labels:
     mysql/arch: mgr
 spec:
@@ -363,8 +358,18 @@ EOF
 **Verify target cluster:**
 
 ```bash
-kubectl -n $NAMESPACE get mysql $TARGET_NAME -w
+kubectl -n ${TARGET_NAMESPACE} get mysql ${TARGET_NAME} -w
 # Expected: STATE = Ready, MGRSTATE = ready
+# Press Ctrl+C to stop watching
+```
+
+**Set the target password:**
+
+```bash
+TARGET_MYSQL_PASSWORD=$(kubectl get secret mgr-${TARGET_NAME}-password -n ${TARGET_NAMESPACE} -o jsonpath='{.data.root}' | base64 -d)
+
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "SELECT 1;"
 ```
 
 ### Step 4: Migrate Data, Users, and Privileges
@@ -390,18 +395,13 @@ The application must remain stopped (or strictly read-only) from this point unti
      "
    ```
 
+   Set `DATABASES` to the ones you are migrating, separated by spaces:
+   ```bash
+   DATABASES="db1 db2 db3"
+   ```
+
 3. **Export and Import Data**:
    ```bash
-   SOURCE_NAME="source"
-   SOURCE_NAMESPACE="your-namespace"
-   SOURCE_MYSQL_PASSWORD="source-root-password"
-
-   TARGET_NAME="mysql-8-target"
-   TARGET_NAMESPACE="your-namespace"
-   TARGET_MYSQL_PASSWORD="target-root-password"
-
-   DATABASES="db1 db2 db3"
-
    for db in ${DATABASES}; do
      echo "Migrating database: ${db}..."
 
@@ -477,7 +477,7 @@ The application must remain stopped (or strictly read-only) from this point unti
    ```bash
    kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
      mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
-       ALTER USER ${user_host} IDENTIFIED WITH mysql_native_password BY '<password>';
+       ALTER USER '<user>'@'<host>' IDENTIFIED WITH mysql_native_password BY '<password>';
      "
    ```
    :::
@@ -501,11 +501,6 @@ The mysqldump streaming approach above does not require disk space for dump file
 ### Step 5: Verify Migration
 
 ```bash
-TARGET_NAME="mysql-8-target"
-TARGET_NAMESPACE="your-namespace"
-TARGET_MYSQL_PASSWORD="target-root-password"
-DATABASES="db1 db2 db3"
-
 for db in ${DATABASES}; do
   echo "=== Verifying database: ${db} ==="
 
@@ -606,7 +601,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 ```bash
 # Update ConfigMap or environment variables
 kubectl patch configmap <app-config> -n <app-namespace> --type=json \
-  -p='[{"op": "replace", "path": "/data/database-host", "value":"mysql-8-target-read-write.'${TARGET_NAMESPACE}'.svc.cluster.local"}]'
+  -p='[{"op": "replace", "path": "/data/database-host", "value":"'${TARGET_NAME}'-read-write.'${TARGET_NAMESPACE}'.svc.cluster.local"}]'
 
 kubectl patch configmap <app-config> -n <app-namespace> --type=json \
   -p='[{"op": "replace", "path": "/data/database-port", "value":"3306"}]'
@@ -627,7 +622,7 @@ kubectl -n <app-namespace> rollout status deployment <app-name>
 ```bash
 # Test database connectivity
 kubectl exec <app-pod> -n <app-namespace> -- \
-  mysql -h mysql-8-target-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
+  mysql -h ${TARGET_NAME}-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
     -uroot -p${TARGET_MYSQL_PASSWORD} -e "SELECT 1 AS test;"
 
 # Check application logs for errors
@@ -674,6 +669,8 @@ Do not delete PXC custom resources until migration is verified and rollback wind
 :::
 
 ## Common Issues and Solutions
+
+These commands use the variables from [Set Variables](#1-set-variables). Where a command uses `${db}` or `${table}`, first set them to the affected database and table, for example `db="db1"`.
 
 ### Issue: GTID_PURGED Error
 
