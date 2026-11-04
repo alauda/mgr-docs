@@ -304,7 +304,7 @@ spec:
   mgr:
     enableStorage: true
     image: {}
-    members: 1
+    members: 3
     monitor:
       enable: true
       exporter: {}
@@ -405,23 +405,31 @@ The application must remain stopped (or strictly read-only) from this point unti
    for db in ${DATABASES}; do
      echo "Migrating database: ${db}..."
 
-     # Export from PXC source
-     kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-       mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
-         --single-transaction \
-         --quick \
-         --lock-tables=false \
-         --set-gtid-purged=OFF \
-         --routines \
-         --events \
-         --triggers \
-         --databases ${db} \
-       | kubectl exec -i ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-         mysql -uroot -p${TARGET_MYSQL_PASSWORD}
+     if (
+       set -o pipefail
 
-     echo "Migrated: ${db}"
+       # Export from PXC source
+       kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+         mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
+           --single-transaction \
+           --quick \
+           --lock-tables=false \
+           --set-gtid-purged=OFF \
+           --routines \
+           --events \
+           --triggers \
+           --databases ${db} \
+         | kubectl exec -i ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+           mysql -uroot -p${TARGET_MYSQL_PASSWORD}
+     ); then
+       echo "Migrated: ${db}"
+     else
+       echo "FAILED: ${db}"
+     fi
    done
    ```
+
+   If any database prints `FAILED`, read the error above it and fix the problem before you continue. `Migrated` only means that the commands reported no error, so Step 5 still compares the data.
 
    :::warning Keep set-gtid-purged OFF
    Do not change this flag to `ON` or `AUTO`:
