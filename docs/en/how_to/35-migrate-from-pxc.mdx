@@ -429,7 +429,7 @@ The application must remain stopped (or strictly read-only) from this point unti
    done
    ```
 
-   If any database prints `FAILED`, read the error above it and fix the problem before you continue. `Migrated` only means that the commands reported no error, so Step 5 still compares the data.
+   If any database prints `FAILED`, read the error above it and fix the problem before you continue. `Migrated` only means that the commands reported no error. A broken connection can still leave a table short of rows, so Step 5 compares the data.
 
    :::warning Keep set-gtid-purged OFF
    Do not change this flag to `ON` or `AUTO`:
@@ -521,12 +521,43 @@ for db in ${DATABASES}; do
 done
 ```
 
-Repeat the table and row count comparison against a **secondary** member (for example `${TARGET_NAME}-1`), not only the primary. If a database is on the primary but missing on a secondary, the import was applied with binary logging disabled (see the warning under Step 4). Keep the application stopped and re-run the import with `--set-gtid-purged=OFF`, which repairs the secondaries as long as nothing has written to that data yet. After such a write the secondaries leave the group. Check whether the operator has rebuilt them: all members `ONLINE` with matching counts. If not, recreate the target instance and repeat the migration.
+**Compare row counts on every member.** A broken connection can leave a table short of rows without any error, so check every table:
+
+```bash
+for db in ${DATABASES}; do
+  TABLES=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+    mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
+      SELECT TABLE_NAME FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';
+    ")
+
+  for table in ${TABLES}; do
+    SOURCE_COUNT=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+      mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM \`${db}\`.\`${table}\`;")
+
+    # Adjust the member numbers if your target has a different size
+    for member in 0 1 2; do
+      TARGET_COUNT=$(kubectl exec ${TARGET_NAME}-${member} -n ${TARGET_NAMESPACE} -c mysql -- \
+        mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "SELECT COUNT(*) FROM \`${db}\`.\`${table}\`;")
+
+      if [ "${SOURCE_COUNT}" = "${TARGET_COUNT}" ]; then
+        echo "OK: ${db}.${table} on ${TARGET_NAME}-${member}: ${TARGET_COUNT}"
+      else
+        echo "MISMATCH: ${db}.${table} on ${TARGET_NAME}-${member}: source ${SOURCE_COUNT}, target ${TARGET_COUNT}"
+      fi
+    done
+  done
+done
+```
+
+Every table should print `OK` on every member. A member may briefly lag behind, so run the comparison again before you act on a single `MISMATCH`.
+
+- **Low or missing on every member:** the import did not finish. See "Network Interruption During Migration" under Common Issues and Solutions.
+- **Present on the primary but missing on a secondary:** the import was applied with binary logging disabled (see the warning under Step 4). Keep the application stopped and re-run the import with `--set-gtid-purged=OFF`, which repairs the secondaries as long as nothing has written to that data yet. After such a write the secondaries leave the group. Check whether the operator has rebuilt them: all members `ONLINE` with matching counts. If not, recreate the target instance and repeat the migration.
 
 **Verification Checklist:**
 - [ ] Same number of tables in each database
-- [ ] Same row counts per table
-- [ ] Same table and row counts on a secondary member
+- [ ] Same row counts per table on every member
 - [ ] Same number of views
 - [ ] All views execute successfully
 - [ ] All stored procedures and functions exist
@@ -735,6 +766,41 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 
 Any 4-byte characters written since the conversion do not fit in `utf8`, so check for them and take a backup first. `TEXT` columns remain `MEDIUMTEXT` after the revert, which is harmless.
 
+### Issue: Network Interruption During Migration
+
+**Symptoms:** The connection drops during Step 4, the loop prints `FAILED`, or Step 5 prints `MISMATCH`.
+
+A broken stream can look like a successful import. If the stream stops between statements, or at a point that still forms valid SQL, `mysql` exits with status 0 and the table is missing or short of rows. Always run the row count comparison in Step 5, even if every database printed `Migrated`.
+
+**Solution, before the application writes to the target:**
+
+1. Keep the application stopped, so the source does not change.
+2. When the network is back, check that the source is healthy and that all target members are `ONLINE`:
+   ```bash
+   kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+     mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
+       SELECT MEMBER_HOST, MEMBER_STATE, MEMBER_ROLE
+       FROM performance_schema.replication_group_members;
+     "
+   ```
+   The primary may have changed. The commands in this guide import through `${TARGET_NAME}-0`, so if it is no longer the primary, use the pod that is.
+3. Set `DATABASES` to the databases that did not finish or that Step 5 reported, then re-run the export and import loop in Step 4. You do not need to drop anything first, because the dump drops and recreates each table, view, routine and event that it contains.
+4. Run Step 5 again. Continue only when every table prints `OK`.
+
+If the interruption happened while migrating users, re-run that step as well. `ERROR 1396` for a user that already exists is expected, but confirm that the other users and all grants are present.
+
+If the interruption happened during a schema fix or a utf8mb4 conversion on the source, check the state of that table and re-run the statement if it did not apply.
+
+**Solution, after the application has written to the target:**
+
+Do not re-run the dump, because it replaces the tables and removes those writes. Fix the network and continue on the target, or follow the Rollback Plan under Disaster Recovery. Rolling back loses anything written to the target since the cutover.
+
+**To reduce the risk:**
+
+- Run the migration from a host close to the cluster, inside `tmux` or `screen`, so that a dropped session does not stop it.
+- Rehearse in staging to learn how long the stream runs. A proxy or load balancer in front of the Kubernetes API server may close long `kubectl exec` sessions.
+- For large databases, list one database in `DATABASES` at a time, so that a failure costs less to repeat.
+
 ### Issue: DEFINER Privilege Errors
 
 **Symptoms:**
@@ -783,28 +849,8 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 ```
 
 **Verify Data Integrity:**
-```bash
-for db in ${DATABASES}; do
-  echo "=== Database: ${db} ==="
-  kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-    mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
-      SELECT TABLE_NAME, TABLE_ROWS
-      FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE'
-      ORDER BY TABLE_NAME;
-    " > /tmp/source_counts.txt
 
-  kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-    mysql -uroot -p${TARGET_MYSQL_PASSWORD} -N -e "
-      SELECT TABLE_NAME, TABLE_ROWS
-      FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE'
-      ORDER BY TABLE_NAME;
-    " > /tmp/target_counts.txt
-
-  diff /tmp/source_counts.txt /tmp/target_counts.txt || echo "Row count differences detected!"
-done
-```
+Use the row count comparison in Step 5. Do not compare `TABLE_ROWS` from `information_schema.TABLES`, because it is only an estimate for InnoDB tables.
 
 **Check MySQL 8.0 Error Logs:**
 ```bash
