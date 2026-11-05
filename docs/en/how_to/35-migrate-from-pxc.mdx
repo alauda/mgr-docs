@@ -20,7 +20,7 @@ MySQL 5.7 reached End of Life (EOL) in October 2023, and MySQL-PXC is deprecated
 
 Migrating production databases involves complex considerations:
 - Schema compatibility with MySQL 8.0 reserved keywords
-- Character set changes (utf8mb4)
+- Character set and collation review
 - Authentication plugin updates
 - Ensuring data integrity during migration
 
@@ -66,7 +66,7 @@ Always check your actual pod names with `kubectl get pod -n <namespace>` before 
 | **Medium Database** | 10-50GB | 30-60 minutes |
 | **Large Database** | 50-200GB | 1-2 hours |
 | **Schema Issues** | Any size | +1-2 hours for fixes |
-| **Character Set Migration** | Any size | +30-60 minutes |
+| **Character Set Migration (optional)** | Any size | +30-60 minutes |
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ Before performing migration, ensure you have:
 
 - ACP v4.0 or later with MySQL Operator v4.0 or later
 - A healthy MySQL-PXC 5.7 cluster as source (GTID is **not** required on the source; `@@gtid_mode` may be `OFF`)
-- A new MySQL-MGR 8.0 cluster created as target **before** migration
+- Permission and capacity to create a new MySQL-MGR 8.0 cluster as the target (Step 3)
 - Storage capacity of 2-3x the source database size
 - Network connectivity from your local machine to both clusters
 
@@ -82,63 +82,58 @@ Before performing migration, ensure you have:
 
 - Application downtime is required during export and import to ensure consistency
 - Recommended maximum database size: 200GB (larger databases may require alternative approaches)
-- The target cluster must be created before migration begins
+- The target cluster must be created before the data export in Step 4
 - Storage performance on target should match or exceed the source
 
 ## Getting Started
 
-### 1. Get MySQL Root Password
+### 1. Set Variables
+
+Every command in this guide uses the variables below. Run them first, and run the rest of the guide in the **same terminal**. If you open a new terminal, set them again.
+
+Find the name and namespace of your PXC source:
 
 ```bash
-# For PXC 5.7 source
-kubectl get secret <source-name> -n <source-namespace> -o jsonpath='{.data.root}' | base64 -d
-
-# For MGR 8.0 target
-kubectl get secret mgr-<target-name>-password -n <target-namespace> -o jsonpath='{.data.root}' | base64 -d
+kubectl get mysql -A
 ```
 
-### 2. Identify Pod Names
+Set the source variables, and choose a name for the target that you will create in Step 3. Replace the example values:
 
 ```bash
-# Check source PXC pods
-kubectl get pod -n <source-namespace> | grep <source-name>
-# Example output: source-pxc-0, source-pxc-1, source-pxc-2
+# PXC 5.7 source
+SOURCE_NAME="source"
+SOURCE_NAMESPACE="your-namespace"
+SOURCE_MYSQL_PASSWORD=$(kubectl get secret ${SOURCE_NAME} -n ${SOURCE_NAMESPACE} -o jsonpath='{.data.root}' | base64 -d)
 
-# Check target MGR pods
-kubectl get pod -n <target-namespace> | grep <target-name>
-# Example output: target-0, target-1, target-2
+# MGR 8.0 target
+TARGET_NAME="mysql-8-target"
+TARGET_NAMESPACE="your-namespace"
 ```
 
-### 3. Verify Cluster Status
+You set `TARGET_MYSQL_PASSWORD` in Step 3, after the target exists, and `DATABASES` in Step 4.
+
+### 2. Verify Source Status
 
 ```bash
-# Check PXC source status
-kubectl get mysql <source-name> -n <source-namespace>
+kubectl get mysql ${SOURCE_NAME} -n ${SOURCE_NAMESPACE}
 # Expected: STATE = ready, PXCSTATE = ready
 
-# Check MGR target status
-kubectl get mysql <target-name> -n <target-namespace>
-# Expected: All 3 members ready, STATUS = Running
+kubectl get pod -n ${SOURCE_NAMESPACE} | grep ${SOURCE_NAME}
+# Example output: source-pxc-0, source-pxc-1, source-pxc-2
 ```
 
-### 4. kubectl Exec Best Practices
+### 3. Run a Command on the Source
 
-**For PXC 5.7 (source):**
+The source takes no container specifier:
+
 ```bash
-# No container specifier needed for PXC
-kubectl exec <source-name>-pxc-0 -n <namespace> -- \
-  mysql -uroot -p<password> -e "SQL_HERE"
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "SELECT 1;"
 ```
 
-**For MGR 8.0 (target):**
-```bash
-# Always use -c mysql for MGR
-kubectl exec <target-name>-0 -n <namespace> -c mysql -- \
-  mysql -uroot -p<password> -e "SQL_HERE"
-```
+The target needs `-c mysql`, as shown in Step 3.
 
 :::tip
-- Always use the parameter order: `kubectl exec -n <namespace> <pod-name> -- <command>`
 - Use `--` (double dash) before the command to separate kubectl options from the command
 - Avoid heredocs (`<<EOF`) with `kubectl exec` - they often fail due to shell quoting issues
 :::
@@ -180,6 +175,8 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 
 #### Fix Schema Issues
 
+These are examples. Replace the database, table and column names with the ones the checks found.
+
 ```bash
 # Fix reserved keyword columns (example)
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
@@ -188,7 +185,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
     ALTER TABLE users CHANGE COLUMN rank user_rank INT;
   "
 
-# Fix ZEROFILL columns
+# Fix ZEROFILL columns (example)
 kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
   mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
     USE db1;
@@ -197,6 +194,8 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 ```
 
 ### Step 2: Character Set and Collation Analysis
+
+Converting to utf8mb4 is **optional**. The dump keeps each table's character set and collation, so `latin1` and `utf8` tables can be migrated as they are. Convert only if the application needs utf8mb4, for example to store emoji. Do not convert a database that belongs to a third-party application, such as Nacos, unless its vendor supports the change.
 
 Check for non-utf8mb4 tables:
 
@@ -210,23 +209,58 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
   "
 ```
 
-#### Convert to utf8mb4
+Keep this output. You need the original collations if you have to revert a conversion.
+
+#### Optional: Convert to utf8mb4
+
+Before converting, check for these two problems:
+
+- **Case-sensitive collations:** a `_bin` collation treats `App.yaml` and `app.yaml` as different values, but `utf8mb4_unicode_ci` does not. Converting fails with `ERROR 1062` if both values exist. If they do not, the conversion succeeds and the unique index then rejects values that differ only by case. The commands below skip tables with a `_bin` table collation.
+- **Long indexes:** utf8mb4 uses up to 4 bytes per character, and the index limit is 3072 bytes across all columns of the index (767 bytes per column for the `COMPACT` and `REDUNDANT` row formats).
+
+This query lists the indexes that would exceed 3072 bytes. It estimates non-character columns at 8 bytes each:
 
 ```bash
-# Convert databases to utf8mb4
-for db in ${DATABASES}; do
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
+    SELECT s.TABLE_SCHEMA, s.TABLE_NAME, s.INDEX_NAME,
+           IF(MAX(s.NON_UNIQUE) = 0, 'UNIQUE', 'NON-UNIQUE') AS kind,
+           SUM(IF(c.CHARACTER_SET_NAME IS NULL, 8,
+                  COALESCE(s.SUB_PART, c.CHARACTER_MAXIMUM_LENGTH) * 4)) AS utf8mb4_bytes
+    FROM information_schema.STATISTICS s
+    JOIN information_schema.COLUMNS c
+      ON c.TABLE_SCHEMA = s.TABLE_SCHEMA AND c.TABLE_NAME = s.TABLE_NAME
+     AND c.COLUMN_NAME = s.COLUMN_NAME
+    WHERE s.TABLE_SCHEMA NOT IN ('information_schema','mysql','performance_schema','sys')
+      AND s.INDEX_TYPE NOT IN ('FULLTEXT','SPATIAL')
+    GROUP BY s.TABLE_SCHEMA, s.TABLE_NAME, s.INDEX_NAME
+    HAVING utf8mb4_bytes > 3072;
+  "
+```
+
+A table listed by this query fails to convert with `ERROR 1071`. Leave it as it is unless you can shorten its columns. See the "Specified key was too long" issue under Common Issues and Solutions.
+
+To convert, list only the databases you have decided to convert. `ALTER TABLE` rebuilds each table, and on PXC it blocks writes across the cluster by default while it runs, so use a maintenance window.
+
+```bash
+CONVERT_DATABASES="db1 db2"
+
+# Set the default for new tables
+for db in ${CONVERT_DATABASES}; do
   kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
     mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -e "
       ALTER DATABASE ${db} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
     "
 done
 
-# Convert tables to utf8mb4
-for db in ${DATABASES}; do
+# Convert existing tables, skipping utf8mb4 and _bin tables
+for db in ${CONVERT_DATABASES}; do
   TABLES=$(kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
     mysql -uroot -p${SOURCE_MYSQL_PASSWORD} -N -e "
       SELECT TABLE_NAME FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE';
+      WHERE TABLE_SCHEMA = '${db}' AND TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_COLLATION NOT LIKE 'utf8mb4%'
+        AND TABLE_COLLATION NOT LIKE '%\_bin';
     ")
 
   for table in ${TABLES}; do
@@ -234,17 +268,13 @@ for db in ${DATABASES}; do
     kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
       mysql -uroot -p${SOURCE_MYSQL_PASSWORD} ${db} -e "
         ALTER TABLE ${table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-      "
+      " || echo "FAILED: ${db}.${table}"
   done
 done
 ```
 
 :::warning
-For tables with long VARCHAR/TEXT indexes (>191 characters), you may need to adjust index lengths:
-```sql
-ALTER TABLE users DROP INDEX idx_email;
-ALTER TABLE users ADD UNIQUE INDEX idx_email (email(191));
-```
+These commands continue after a table fails, so read the output for `FAILED` lines. A failed table is unchanged, and the tables around it may already be converted.
 :::
 
 ### Step 3: Create Target MySQL-MGR 8.0 Instance
@@ -260,23 +290,21 @@ Create the target MySQL-MGR 8.0 instance **shortly before** the data migration p
 **Using Command Line:**
 
 ```bash
-TARGET_NAME="mysql-8-target"
-NAMESPACE="your-namespace"
 STORAGE_SIZE="500Gi"
 
-cat << EOF | kubectl -n $NAMESPACE apply -f -
+cat << EOF | kubectl -n ${TARGET_NAMESPACE} apply -f -
 apiVersion: middleware.alauda.io/v1
 kind: Mysql
 metadata:
-  name: $TARGET_NAME
-  namespace: $NAMESPACE
+  name: ${TARGET_NAME}
+  namespace: ${TARGET_NAMESPACE}
   labels:
     mysql/arch: mgr
 spec:
   mgr:
     enableStorage: true
     image: {}
-    members: 1
+    members: 3
     monitor:
       enable: true
       exporter: {}
@@ -330,8 +358,18 @@ EOF
 **Verify target cluster:**
 
 ```bash
-kubectl -n $NAMESPACE get mysql $TARGET_NAME -w
+kubectl -n ${TARGET_NAMESPACE} get mysql ${TARGET_NAME} -w
 # Expected: STATE = Ready, MGRSTATE = ready
+# Press Ctrl+C to stop watching
+```
+
+**Set the target password:**
+
+```bash
+TARGET_MYSQL_PASSWORD=$(kubectl get secret mgr-${TARGET_NAME}-password -n ${TARGET_NAMESPACE} -o jsonpath='{.data.root}' | base64 -d)
+
+kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+  mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "SELECT 1;"
 ```
 
 ### Step 4: Migrate Data, Users, and Privileges
@@ -357,38 +395,41 @@ The application must remain stopped (or strictly read-only) from this point unti
      "
    ```
 
+   Set `DATABASES` to the ones you are migrating, separated by spaces:
+   ```bash
+   DATABASES="db1 db2 db3"
+   ```
+
 3. **Export and Import Data**:
    ```bash
-   SOURCE_NAME="source"
-   SOURCE_NAMESPACE="your-namespace"
-   SOURCE_MYSQL_PASSWORD="source-root-password"
-
-   TARGET_NAME="mysql-8-target"
-   TARGET_NAMESPACE="your-namespace"
-   TARGET_MYSQL_PASSWORD="target-root-password"
-
-   DATABASES="db1 db2 db3"
-
    for db in ${DATABASES}; do
      echo "Migrating database: ${db}..."
 
-     # Export from PXC source
-     kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
-       mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
-         --single-transaction \
-         --quick \
-         --lock-tables=false \
-         --set-gtid-purged=OFF \
-         --routines \
-         --events \
-         --triggers \
-         --databases ${db} \
-       | kubectl exec -i ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
-         mysql -uroot -p${TARGET_MYSQL_PASSWORD}
+     if (
+       set -o pipefail
 
-     echo "Migrated: ${db}"
+       # Export from PXC source
+       kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+         mysqldump -uroot -p${SOURCE_MYSQL_PASSWORD} \
+           --single-transaction \
+           --quick \
+           --lock-tables=false \
+           --set-gtid-purged=OFF \
+           --routines \
+           --events \
+           --triggers \
+           --databases ${db} \
+         | kubectl exec -i ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
+           mysql -uroot -p${TARGET_MYSQL_PASSWORD}
+     ); then
+       echo "Migrated: ${db}"
+     else
+       echo "FAILED: ${db}"
+     fi
    done
    ```
+
+   If any database prints `FAILED`, read the error above it and fix the problem before you continue. `Migrated` only means that the commands reported no error, so Step 5 still compares the data.
 
    :::warning Keep set-gtid-purged OFF
    Do not change this flag to `ON` or `AUTO`:
@@ -444,7 +485,7 @@ The application must remain stopped (or strictly read-only) from this point unti
    ```bash
    kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
      mysql -uroot -p${TARGET_MYSQL_PASSWORD} -e "
-       ALTER USER ${user_host} IDENTIFIED WITH mysql_native_password BY '<password>';
+       ALTER USER '<user>'@'<host>' IDENTIFIED WITH mysql_native_password BY '<password>';
      "
    ```
    :::
@@ -456,11 +497,6 @@ The mysqldump streaming approach above does not require disk space for dump file
 ### Step 5: Verify Migration
 
 ```bash
-TARGET_NAME="mysql-8-target"
-TARGET_NAMESPACE="your-namespace"
-TARGET_MYSQL_PASSWORD="target-root-password"
-DATABASES="db1 db2 db3"
-
 for db in ${DATABASES}; do
   echo "=== Verifying database: ${db} ==="
 
@@ -561,7 +597,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
 ```bash
 # Update ConfigMap or environment variables
 kubectl patch configmap <app-config> -n <app-namespace> --type=json \
-  -p='[{"op": "replace", "path": "/data/database-host", "value":"mysql-8-target-read-write.'${TARGET_NAMESPACE}'.svc.cluster.local"}]'
+  -p='[{"op": "replace", "path": "/data/database-host", "value":"'${TARGET_NAME}'-read-write.'${TARGET_NAMESPACE}'.svc.cluster.local"}]'
 
 kubectl patch configmap <app-config> -n <app-namespace> --type=json \
   -p='[{"op": "replace", "path": "/data/database-port", "value":"3306"}]'
@@ -582,7 +618,7 @@ kubectl -n <app-namespace> rollout status deployment <app-name>
 ```bash
 # Test database connectivity
 kubectl exec <app-pod> -n <app-namespace> -- \
-  mysql -h mysql-8-target-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
+  mysql -h ${TARGET_NAME}-read-write.${TARGET_NAMESPACE}.svc.cluster.local \
     -uroot -p${TARGET_MYSQL_PASSWORD} -e "SELECT 1 AS test;"
 
 # Check application logs for errors
@@ -630,6 +666,8 @@ Do not delete PXC custom resources until migration is verified and rollback wind
 
 ## Common Issues and Solutions
 
+These commands use the variables from Getting Started. Where a command uses `${db}` or `${table}`, first set them to the affected database and table, for example `db="db1"`.
+
 ### Issue: GTID_PURGED Error
 
 **Symptoms:**
@@ -664,6 +702,38 @@ kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
     ALTER DATABASE ${db} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
   "
 ```
+
+### Issue: Specified key was too long
+
+**Symptoms:**
+```
+ERROR 1071 (42000): Specified key was too long; max key length is 3072 bytes
+```
+
+**Solution:** The table has an index that does not fit in utf8mb4. The table is unchanged and can be migrated as it is, so the simplest fix is not to convert it. If the database belongs to a third-party application, such as older Nacos schemas with the `config_info_aggr` table, also revert any of its tables that were already converted. See the "Case-sensitive values are rejected" issue below.
+
+If the table must use utf8mb4, first check that the data fits in shorter columns with `SELECT MAX(CHAR_LENGTH(column_name)) FROM table_name;`, then reduce the column lengths and convert again. Do not shorten a `UNIQUE` index with a prefix such as `column_name(191)`, because values that differ only after the prefix then count as duplicates.
+
+### Issue: Case-sensitive values are rejected
+
+**Symptoms:**
+```
+ERROR 1062 (23000): Duplicate entry 'app.yaml-...' for key '...'
+```
+
+The error appears during `CONVERT TO`, or afterwards when the application writes a value that differs from an existing one only by case.
+
+**Solution:** The table had a case-sensitive `_bin` collation and was converted to `utf8mb4_unicode_ci`. Convert it back to the original character set and collation from the Step 2 output, and restore the database default. Replace `utf8` and `utf8_bin` if the originals were different:
+
+```bash
+kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
+  mysql -uroot -p${SOURCE_MYSQL_PASSWORD} ${db} -e "
+    ALTER TABLE ${table} CONVERT TO CHARACTER SET utf8 COLLATE utf8_bin;
+    ALTER DATABASE ${db} CHARACTER SET = utf8 COLLATE = utf8_bin;
+  "
+```
+
+Any 4-byte characters written since the conversion do not fit in `utf8`, so check for them and take a backup first. `TEXT` columns remain `MEDIUMTEXT` after the revert, which is harmless.
 
 ### Issue: DEFINER Privilege Errors
 
@@ -746,7 +816,7 @@ kubectl logs -n ${TARGET_NAMESPACE} ${TARGET_NAME}-0 -c mysql --tail=100 -f | gr
 ### Pre-Migration Planning
 - **Test in Staging**: Always perform a test migration in non-production first
 - **Schema Cleanup**: Fix all schema compatibility issues before production migration
-- **Character Set Migration**: Convert to utf8mb4 well in advance (3-5 days before)
+- **Character Set Migration**: If you choose to convert to utf8mb4, do it well in advance (3-5 days before). Do not convert third-party application databases
 - **Backup Strategy**: Ensure recent backups are available before migration
 - **Maintenance Window**: Schedule adequate downtime based on database size
 
