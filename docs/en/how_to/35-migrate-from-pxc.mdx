@@ -92,7 +92,7 @@ Before performing migration, ensure you have:
 
 ## Getting Started
 
-### 1. Set Variables {#set-variables}
+### 1. Set Variables
 
 Every command in this guide uses the variables below. Run them first, and run the rest of the guide in the **same terminal**. If you open a new terminal, set them again.
 
@@ -243,7 +243,7 @@ kubectl exec ${SOURCE_NAME}-pxc-0 -n ${SOURCE_NAMESPACE} -- \
   "
 ```
 
-A table listed by this query fails to convert with `ERROR 1071`. Leave it as it is unless you can shorten its columns. See [Specified key was too long](#issue-specified-key-was-too-long).
+A table listed by this query fails to convert with `ERROR 1071`. Leave it as it is unless you can shorten its columns. See the "Specified key was too long" issue under Common Issues and Solutions.
 
 To convert, list only the databases you have decided to convert. `ALTER TABLE` rebuilds each table, and on PXC it blocks writes across the cluster by default while it runs, so use a maintenance window.
 
@@ -670,7 +670,7 @@ Do not delete PXC custom resources until migration is verified and rollback wind
 
 ## Common Issues and Solutions
 
-These commands use the variables from [Set Variables](#set-variables). Where a command uses `${db}` or `${table}`, first set them to the affected database and table, for example `db="db1"`.
+These commands use the variables from Getting Started. Where a command uses `${db}` or `${table}`, first set them to the affected database and table, for example `db="db1"`.
 
 ### Issue: GTID_PURGED Error
 
@@ -707,18 +707,18 @@ kubectl exec ${TARGET_NAME}-0 -n ${TARGET_NAMESPACE} -c mysql -- \
   "
 ```
 
-### Issue: Specified key was too long {#issue-specified-key-was-too-long}
+### Issue: Specified key was too long
 
 **Symptoms:**
 ```
 ERROR 1071 (42000): Specified key was too long; max key length is 3072 bytes
 ```
 
-**Solution:** The table has an index that does not fit in utf8mb4. The table is unchanged and can be migrated as it is, so the simplest fix is not to convert it. If the database belongs to a third-party application, such as older Nacos schemas with the `config_info_aggr` table, also revert any of its tables that were already converted. See [Case-sensitive values are rejected](#issue-case-sensitive-values-are-rejected).
+**Solution:** The table has an index that does not fit in utf8mb4. The table is unchanged and can be migrated as it is, so the simplest fix is not to convert it. If the database belongs to a third-party application, such as older Nacos schemas with the `config_info_aggr` table, also revert any of its tables that were already converted. See the "Case-sensitive values are rejected" issue below.
 
 If the table must use utf8mb4, first check that the data fits in shorter columns with `SELECT MAX(CHAR_LENGTH(column_name)) FROM table_name;`, then reduce the column lengths and convert again. Do not shorten a `UNIQUE` index with a prefix such as `column_name(191)`, because values that differ only after the prefix then count as duplicates.
 
-### Issue: Case-sensitive values are rejected {#issue-case-sensitive-values-are-rejected}
+### Issue: Case-sensitive values are rejected
 
 **Symptoms:**
 ```
