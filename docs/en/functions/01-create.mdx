@@ -14,6 +14,16 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
 - Ensure that the MySQL-MGR Operator is installed in the cluster.
 - Ensure that the cluster storage class supports dynamic volume provisioning (TopoLVM is recommended).
 - Ensure that there are sufficient resource quotas.
+- Ensure that the cluster has at least as many schedulable nodes as the number of MySQL members you plan to create. See [Scheduling Rules](#scheduling-rules).
+
+### Scheduling Rules \{#scheduling-rules}
+
+By default, the operator applies a **required** Pod anti-affinity rule with the topology key `kubernetes.io/hostname` to the MySQL members of an instance. As a result:
+
+- At most one MySQL member of the same instance runs on each node. Members of different instances can share a node.
+- An instance with N members needs at least N schedulable nodes. If fewer nodes are available, the extra members stay in the `Pending` state.
+
+This default applies only when `spec.mgr.affinity` is not set on the `Mysql` resource. If you set `spec.mgr.affinity`, it replaces the default rule completely, so include your own Pod anti-affinity rule if you still want the members spread across nodes.
 
 ## Procedure
 
@@ -191,7 +201,7 @@ Create and manage MySQL-MGR database instances within a Kubernetes cluster. Quic
 
     5. Resource Configuration:
 
-        - Number of Replicas: recommended to start from 3 nodes
+        - Number of Replicas: recommended to start from 3 nodes. Each member runs on a different node, so the cluster needs at least as many schedulable nodes as replicas. See [Scheduling Rules](#scheduling-rules).
         - Specifications: CPU/Memory request and limit values for MySQL members
         - Storage Class: select a storage class of type TopoLVM
         - Storage Size: evaluate storage needs based on business requirements
