@@ -32,7 +32,7 @@ Each `Mysql` CR running in MGR mode creates the following workloads in its names
 - A set of **PersistentVolumeClaims** (one per StatefulSet ordinal) backing MySQL's data directory; PV lifecycle is managed by the CSI driver in use.
 - **Secrets** holding the root and replication-channel passwords, plus **ConfigMaps** holding rendered `my.cnf` fragments.
 
-The StatefulSet uses anti-affinity so that MGR replicas land on different nodes; `topologyKey` and node-selection knobs on the `Mysql` CR refine this further.
+By default, the StatefulSet carries a **required** Pod anti-affinity rule on `kubernetes.io/hostname`, so at most one MGR member of an instance runs on each node, and an N-member instance needs at least N schedulable nodes (otherwise the extra members stay `Pending`). The default applies only when `spec.mgr.affinity` is unset on the `Mysql` CR; a user-supplied `spec.mgr.affinity` replaces it completely. See [Create Instance](../functions/01-create#scheduling-rules).
 
 ### Group Replication primer
 
