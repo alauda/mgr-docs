@@ -36,7 +36,7 @@ Use a local StorageClass with manually provisioned PersistentVolumes (PVs). This
 - **Dependency installation**: Ensure all required operators are installed before deploying MySQL-MGR.
 - **StorageClass creation**: Set up a local StorageClass with `WaitForFirstConsumer` binding.
 - **PV provisioning**: Create local PVs with correct paths, permissions, and reclaim policies.
-- **ClickHouse storage fix** (optional): Avoid the `read-only file system` error caused by the query-analytics plugin's hardcoded host path.
+- **ClickHouse storage fix** (optional): Avoid the `read-only file system` error caused by the query-analytics Operator's hardcoded host path.
 - **Instance creation**: Deploy MySQL-MGR using the local StorageClass.
 
 ## Prerequisites
@@ -194,7 +194,7 @@ All PVs should show `Available` status before proceeding.
 This step is only needed if you plan to use query analytics features (slow query logging, query analysis). If you do not use query analytics, skip this step — MySQL-MGR instances will function normally without it.
 :::
 
-The query-analytics plugin deploys ClickHouse using a host directory PV. By default, the host path is `/cpaas/ck`. On Alauda OS or other systems with a read-only root filesystem, this causes ClickHouse pods to fail with:
+The query-analytics Operator deploys ClickHouse using a host directory PV. By default, the host path is `/cpaas/ck`. On Alauda OS or other systems with a read-only root filesystem, this causes ClickHouse pods to fail with:
 
 ```
 mkdir /cpaas: read-only file system
@@ -439,6 +439,6 @@ kubectl annotate mysql ${instance_name} -n ${namespace} \
 
 **Symptom**: ClickHouse pods fail to start with `mkdir /cpaas: read-only file system`.
 
-**Cause**: The query-analytics plugin's default ClickHouse host path (`/cpaas/ck`) does not exist on read-only filesystems.
+**Cause**: The query-analytics Operator's default ClickHouse host path (`/cpaas/ck`) does not exist on read-only filesystems.
 
 **Fix**: Follow [Step 3](#step-3-optional-configure-clickhouse-storage-path-on-read-only-filesystems) to set `spec.slowSQLCK.hostPath` in the `RdsInstaller` CR to a writable path.
