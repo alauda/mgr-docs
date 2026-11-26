@@ -88,11 +88,11 @@
       "updated_at": "2026-05-16T09:37:47Z"
     },
     "docs/en/functions/01-create.mdx": {
-      "sha256": "da322d1dd9b39474d47110ee53a3b47b50a3e853b6addaa1bd4da98cf338991b",
+      "sha256": "a4ad29eb532c2dced07beccb6834f9abab17dbe1fc5eb0cedb13f233f17a0a04",
       "size": 7686,
       "description": "Step-by-step procedure for provisioning a MySQL-MGR instance, with parallel CLI and Web Console tabs. The CLI flow creates the per-instance password secret (`clusterchecker`, `exporter`, `manage`, `root` keys), applies a `middleware.alauda.io/v1 Mysql` manifest configuring `spec.mgr.members`, monitoring, server/router resources, `svcRO`/`svcRW`, `volumeClaimTemplate` (TopoLVM recommended), and a large `spec.params.mysql.mysqld` block (binlog, InnoDB, group replication tunables, thread pool). The console flow walks through single-master vs multi-master, replica count, resources, storage class, root password, and access mode.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:37:47Z"
+      "updated_at": "2026-11-26T18:13:51Z"
     },
     "docs/en/functions/05-delete.mdx": {
       "sha256": "7d9ec48ca29d75bbfdc166727acc7b937fb4aeaf5580834dc2843bb9add65776",
@@ -116,11 +116,11 @@
       "updated_at": "2026-05-16T09:37:47Z"
     },
     "docs/en/functions/20-backup_restore.mdx": {
-      "sha256": "8b3e34c4177c7023c56eff52a7248da8556a18a5fa10390a1bf277913b91a5e4",
-      "size": 7512,
+      "sha256": "b55d8d0f4e09a1b5ad44a46ebfca206472a8722d3aa61ac2f8dfca64f68b11f3",
+      "size": 7514,
       "description": "End-to-end backup and restore workflow for MGR clusters, requiring an external S3 bucket and AWS-style secret. Covers configuring automatic backups by patching `mysqlschedules` with `expiryDays`, `full.cron`, `incr.cron`, and `storage.s3` fields; creating ad-hoc backups with a `mysql.middleware.alauda.io/v1 MySQLBackup` CR (`type: full` or `increment`); restoring with a `MySQLRestore` CR that references the source backup and target instance; and deleting backups (which also removes the underlying S3 data).",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:37:47Z"
+      "updated_at": "2026-11-26T18:13:51Z"
     },
     "docs/en/functions/30-stop.mdx": {
       "sha256": "5100765c54239afc81c555303a4bb6f0c3522497824ca0b52ee8831799e82759",
@@ -137,18 +137,18 @@
       "updated_at": "2026-05-16T09:37:47Z"
     },
     "docs/en/functions/40-parameter.mdx": {
-      "sha256": "945e9d389af0f71bc600841b0147cc0a2905bab89551fc24726688447ef6446a",
-      "size": 128160,
+      "sha256": "5ceebe3dfcc0b27ccca3276ba92b3db46fe43a7b60a55499ef33da2604747b00",
+      "size": 128147,
       "description": "Parameter configuration reference for MySQL-MGR instances, covering how to apply built-in templates such as `ssd-2c4g-mysql-8.0-mgr`, override parameters via `spec.params.mysql.mysqld` in the Mysql CR (e.g. `max_connections`, `binlog_expire_logs_seconds`), and import or export bulk settings from the Parameter Configuration tab. Includes an extensive reference table of every supported MySQL 8.0 / Percona Server variable with defaults, application strategy (RestartApply, DynamicApply), and descriptions — spanning performance_schema instrumentation, InnoDB tuning, replication, binlog, SSL, audit log, and Group Replication parameters.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:37:47Z"
+      "updated_at": "2026-11-26T18:13:51Z"
     },
     "docs/en/functions/43-update-specification.mdx": {
-      "sha256": "8c9ef2c7edda7ec1d474626e64ae73f6df3ceed4a5b3b46bf3ff3d289e486513",
-      "size": 2460,
+      "sha256": "5ad0bfa52e1b6f740e8e5772bfb19d1a6cc3c41a58a0dadee82e5386924b4901",
+      "size": 2459,
       "description": "Procedure for online expansion of MySQL-MGR resources without downtime: patch `spec.mgr.resources` with `kubectl patch mysql --type=merge` to change CPU/memory limits and requests, expand storage by patching `spec/mgr/volumeClaimTemplate/spec/resources/requests/storage` with a JSON patch, and verify PVC resize via `kubectl get pvc -l v1alpha1.mysql.middleware.alauda.io/cluster=`. Notes the 9-member maximum for Group Replication and the recommended minimum of 3 members for HA.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:37:47Z"
+      "updated_at": "2026-11-26T18:13:51Z"
     },
     "docs/en/functions/45-qan.mdx": {
       "sha256": "58648bd03fb32246ec2461386255dc911681db6da2cc9c4f8ceff81532414d6f",
@@ -207,11 +207,11 @@
       "updated_at": "2026-05-16T09:37:47Z"
     },
     "docs/en/how_to/50-access.mdx": {
-      "sha256": "743c50564b842a3133ed22e9a07a5c9623532b66fb71fb7e88f30a467315c178",
-      "size": 4800,
+      "sha256": "1390a93b79e85913798adfbf75219c386e55ad3e96948f1e1157b89d36d5dcce",
+      "size": 4792,
       "description": "Connection patterns for accessing MySQL-MGR instances from applications — in-cluster access via the read-write/read-only SVCs (e.g. `mgr-read-write:32631`, `mgr-read-only:32630`) and external access via NodePort across multiple node IPs. Includes JDBC examples using multi-host `jdbc:mysql://mgr-0:3306,mgr-1:3306,mgr-2:3306` URLs and GORM examples using the `dbresolver` plugin with separate Sources/Replicas and `RandomPolicy` for both single- and multi-master modes.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:37:47Z"
+      "updated_at": "2026-11-26T18:13:51Z"
     },
     "docs/en/how_to/index.mdx": {
       "sha256": "cc1a151046ddc69a6acc428615d97e2e71c9f3de8d6205b1ec103e93f68df142",
@@ -235,11 +235,11 @@
       "updated_at": "2026-05-16T09:37:47Z"
     },
     "docs/en/intro.mdx": {
-      "sha256": "f891f25e519949ffa6026f5f57cb2cdb4641dee6fdd7d920489eac8d99e9b096",
-      "size": 3218,
+      "sha256": "fd2ab842bbc6ebf6aaa0c09c927c1399560522394f8207047a3a25938503a9a9",
+      "size": 3213,
       "description": "Introduces Alauda Database for MySQL as a Kubernetes-native high-availability solution built on MySQL Group Replication, summarizing key capabilities (operator-driven lifecycle management, automatic failover, elastic node addition/removal, and MySQL Router-based read-write separation). Enumerates concrete usage constraints: a 9-member replication group ceiling (3+ recommended), InnoDB-only with `disabled_storage_engines` guidance, mandatory explicit/invisible primary keys (`sql_generate_invisible_primary_key`), low-latency network requirement, READ COMMITTED isolation (no SERIALIZABLE), no cascading foreign keys or concurrent DDL/DML in multi-master mode, `group_replication_transaction_size_limit` (~143 MB) and `group_replication_member_expel_timeout` (5s) bounds, no heterogeneous architectures (MySQL Clone plugin limitation), and rolling-restart semantics that flip secondaries before the primary.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T09:37:47Z"
+      "updated_at": "2026-11-26T18:13:51Z"
     },
     "docs/en/release_notes.mdx": {
       "sha256": "a70f5b76fe054d7fb7c2fbb025425f81bfb0c9b244f8f96c19b6ae42cb4eedf8",
