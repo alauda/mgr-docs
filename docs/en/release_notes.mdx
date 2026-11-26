@@ -6,6 +6,43 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
+## v4.3.5
+
+This is a maintenance release for the 4.3 (MySQL 8.0) line. It resolves instance-creation, storage compatibility, and cross-cluster disaster recovery issues, and updates base images and dependencies to address known security vulnerabilities.
+
+### Fixed Issues
+
+#### Instance Creation
+
+- Fixed an issue where creating a MySQL instance failed with `ImagePullBackOff` on the agent sidecar on clusters using a private or mirrored image registry because the release package referenced an unmirrored agent image tag. **Any instance created on v4.3.3 or v4.3.4 is affected**; upgrade to v4.3.5 to resolve it. Existing running instances are unaffected.
+
+#### Storage Compatibility
+
+- Added Pod `fsGroup` configuration for instances at `crVersion` `4.3.5` and later so dynamic storage classes whose volume root directories use `0755` permissions (such as Ceph RBD) are writable by the MySQL container.
+
+#### Cross-Cluster Disaster Recovery (ClusterSet)
+
+- Separated local and advertised Group Replication addresses for cross-cluster topologies.
+- Surfaced replica join errors on cluster status instead of silently retrying.
+- Fixed IPv6 address parsing for ClusterSet endpoints.
+- Removed the fixed 30-second ClusterSet clone timeout so larger datasets can complete cloning.
+- Added validation for `hostPort` communication-stack configurations.
+- Fixed status error handling when all ClusterSet members are temporarily unreachable.
+
+### Security Updates
+
+- Rebuilt the operator, MySQL 8.0.45 server, MySQL router, monitoring exporter, slow-query agent, and RDS controller images on refreshed AlmaLinux 9.9 and Alpine 3.23 base images with Go 1.26.11, and updated bundled `kubectl` to v1.37.2.
+- Verified against the Trivy vulnerability database of 2026-11-25: the operator, MySQL server, MySQL router, slow-query agent, and RDS controller images scan to **0 vulnerabilities across all severities** on both `amd64` and `arm64`.
+
+### Upgrade Notes
+
+- Upgrading from v4.1.x–v4.3.x triggers a rolling restart of managed MySQL 8.0 instances with one brief automatic primary election (typically around 10 seconds of client-visible write interruption through MySQL Router; applications should reconnect and retry).
+- Compatible with Alauda Container Platform v4.1, v4.2, v4.3, and v4.4. When staying on the 4.3 (MySQL 8.0) line on clusters whose catalog also offers v4.4.x (MySQL 8.4), keep the Operator's **Upgrade Strategy** set to **Manual** so the Operator does not automatically advance to v4.4.x.
+
+### Known Issues
+
+{/* release-notes-for-bugs?template=mw-mgr-v4.3-known&project=Middleware */}
+
 ## v4.3.4
 
 ### Fixed Issues
