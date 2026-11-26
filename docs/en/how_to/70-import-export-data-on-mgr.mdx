@@ -96,4 +96,4 @@ kubectl cp <namespace>/<mgr-pod-0>:/var/lib/mysql/<dump-file>.sql ./<dump-file>.
 
 ## When to prefer the operator-managed backup CR
 
-For full-cluster, scheduled, or cross-cluster restores, use the `MysqlBackup` and `MysqlRestore` CRs provided by the operator instead of a manual `mysqldump` flow — those CRs interact with the platform's backup center and S3 storage and are the supported path for production data movement. The manual procedure on this page is intended for ad-hoc business-data migrations and one-off schema imports.
+For full-cluster, scheduled, or cross-cluster restores, use the `MysqlBackup` and `MysqlRestore` CRs provided by the operator instead of a manual `mysqldump` flow — those CRs interact with the platform's backup center and S3 storage and are the supported path for production data movement. The manual procedure on this page is intended for ad-hoc application-data migrations and one-off schema imports.
