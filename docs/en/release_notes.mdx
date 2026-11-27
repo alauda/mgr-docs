@@ -6,7 +6,7 @@ i18n:
     zh: 发版说明
 title: Release Notes
 ---
-## v4.3.5
+## v4.3.6
 
 This is a maintenance release for the 4.3 (MySQL 8.0) line. It resolves instance-creation, storage compatibility, and cross-cluster disaster recovery issues, and updates base images and dependencies to address known security vulnerabilities.
 
@@ -14,11 +14,11 @@ This is a maintenance release for the 4.3 (MySQL 8.0) line. It resolves instance
 
 #### Instance Creation
 
-- Fixed an issue where creating a MySQL instance failed with `ImagePullBackOff` on the agent sidecar on clusters using a private or mirrored image registry because the release package referenced an unmirrored agent image tag. **Any instance created on v4.3.3 or v4.3.4 is affected**; upgrade to v4.3.5 to resolve it. Existing running instances are unaffected.
+- Fixed an issue where creating a MySQL instance failed with `ImagePullBackOff` on the agent sidecar on clusters using a private or mirrored image registry because the release package referenced an unmirrored agent image tag. **Any instance created on v4.3.3 or v4.3.4 is affected**; upgrade to v4.3.6 to resolve it. Existing running instances are unaffected.
 
 #### Storage Compatibility
 
-- Added Pod `fsGroup` configuration for instances at `crVersion` `4.3.5` and later so dynamic storage classes whose volume root directories use `0755` permissions (such as Ceph RBD) are writable by the MySQL container.
+- Added Pod `fsGroup` configuration for instances at `crVersion` `4.3.6` and later so dynamic storage classes whose volume root directories use `0755` permissions (such as Ceph RBD) are writable by the MySQL container.
 
 #### Cross-Cluster Disaster Recovery (ClusterSet)
 
