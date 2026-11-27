@@ -37,7 +37,7 @@ This is a maintenance release for the 4.3 (MySQL 8.0) line. It resolves instance
 ### Upgrade Notes
 
 - Upgrading from v4.1.x–v4.3.x triggers a rolling restart of managed MySQL 8.0 instances with one brief automatic primary election (typically around 10 seconds of client-visible write interruption through MySQL Router; applications should reconnect and retry).
-- Compatible with Alauda Container Platform v4.1, v4.2, v4.3, and v4.4. When staying on the 4.3 (MySQL 8.0) line on clusters whose catalog also offers v4.4.x (MySQL 8.4), keep the Operator's **Upgrade Strategy** set to **Manual** so the Operator does not automatically advance to v4.4.x.
+- Compatible with Alauda Container Platform v4.1, v4.2, v4.3, v4.4, and v4.5. When staying on the 4.3 (MySQL 8.0) line on clusters whose catalog also offers v4.4.x (MySQL 8.4), keep the Operator's **Upgrade Strategy** set to **Manual** so the Operator does not automatically advance to v4.4.x.
 
 ### Known Issues
 
